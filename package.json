@@ -1,0 +1,12 @@
+{
+  "name": "urban_rich_user",
+  "version": "1.0.0",
+  "description": "Urban Rich Luxury Streetwear Customer E-Commerce Storefront",
+  "main": "main.js",
+  "scripts": {
+    "start": "serve ."
+  },
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

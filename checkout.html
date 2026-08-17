@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout — Urban Rich</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="images/logo.jpg" type="image/jpeg">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="main.js"></script>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="site-header" id="siteHeader">
+  <nav class="navbar">
+    <a href="index.html" class="logo">
+      <img src="images/logo.jpg" alt="Urban Rich Logo" class="logo-img" style="height:38px;width:auto;object-fit:contain;" />
+      <span class="logo-wordmark">Urban Rich</span>
+    </a>
+    <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);">🔒 SECURE CHECKOUT</div>
+  </nav>
+</header>
+
+<div style="background: var(--bg-secondary); padding: 28px 24px; text-align: center; border-bottom: 1px solid var(--border);">
+  <h1 style="font-family: var(--font-heading); font-size: 2rem; font-weight: 700; text-transform: uppercase;">CHECKOUT</h1>
+</div>
+
+<main class="section">
+  <div class="container checkout-layout-grid">
+    <div>
+      <h3 style="font-family: var(--font-heading); font-size: 1.2rem; font-weight: 700; margin-bottom: 20px; text-transform: uppercase;">1. SHIPPING ADDRESS</h3>
+      <form id="checkoutForm">
+        <div class="form-row-2" style="margin-bottom: 16px;">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:700;margin-bottom:6px;text-transform:uppercase;">Full Name *</label>
+            <input type="text" id="custName" required placeholder="John Doe" style="width:100%;padding:12px;border:1px solid var(--border-dark);border-radius:2px;font-size:14px;background:var(--bg-secondary);outline:none;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:700;margin-bottom:6px;text-transform:uppercase;">Phone Number *</label>
+            <input type="tel" id="custPhone" required placeholder="9876543210" style="width:100%;padding:12px;border:1px solid var(--border-dark);border-radius:2px;font-size:14px;background:var(--bg-secondary);outline:none;">
+          </div>
+        </div>
+        <div style="margin-bottom: 16px;">
+          <label style="display:block;font-size:12px;font-weight:700;margin-bottom:6px;text-transform:uppercase;">Email Address *</label>
+          <input type="email" id="custEmail" required placeholder="john@example.com" style="width:100%;padding:12px;border:1px solid var(--border-dark);border-radius:2px;font-size:14px;background:var(--bg-secondary);outline:none;">
+        </div>
+        <div style="margin-bottom: 16px;">
+          <label style="display:block;font-size:12px;font-weight:700;margin-bottom:6px;text-transform:uppercase;">Street Address *</label>
+          <input type="text" id="custAddress" required placeholder="House/Flat No., Street, Area" style="width:100%;padding:12px;border:1px solid var(--border-dark);border-radius:2px;font-size:14px;background:var(--bg-secondary);outline:none;">
+        </div>
+        <div class="form-row-3" style="margin-bottom: 32px;">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:700;margin-bottom:6px;text-transform:uppercase;">Pincode *</label>
+            <input type="text" id="custPincode" required placeholder="560001" style="width:100%;padding:12px;border:1px solid var(--border-dark);border-radius:2px;font-size:14px;background:var(--bg-secondary);outline:none;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:700;margin-bottom:6px;text-transform:uppercase;">City *</label>
+            <input type="text" id="custCity" required placeholder="Bangalore" style="width:100%;padding:12px;border:1px solid var(--border-dark);border-radius:2px;font-size:14px;background:var(--bg-secondary);outline:none;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:700;margin-bottom:6px;text-transform:uppercase;">State *</label>
+            <input type="text" id="custState" required placeholder="Karnataka" style="width:100%;padding:12px;border:1px solid var(--border-dark);border-radius:2px;font-size:14px;background:var(--bg-secondary);outline:none;">
+          </div>
+        </div>
+
+        <h3 style="font-family: var(--font-heading); font-size: 1.2rem; font-weight: 700; margin-bottom: 20px; text-transform: uppercase;">2. PAYMENT METHOD</h3>
+        
+        <div class="payment-option active" onclick="selectPayment('ONLINE', this)" style="border:1px solid var(--black);background:var(--bg-secondary);padding:16px;border-radius:4px;margin-bottom:12px;cursor:pointer;display:flex;align-items:center;gap:12px;">
+          <input type="radio" name="payMethod" value="ONLINE" checked>
+          <div>
+            <div style="font-weight:700;font-size:14px;">Cashfree Online Checkout (UPI, Cards, NetBanking)</div>
+            <div style="font-size:12px;color:var(--text-muted);">Instant verification & fast processing</div>
+          </div>
+        </div>
+
+        <div class="payment-option" onclick="selectPayment('COD', this)" style="border:1px solid var(--border-dark);background:var(--bg);padding:16px;border-radius:4px;margin-bottom:12px;cursor:pointer;display:flex;align-items:center;gap:12px;">
+          <input type="radio" name="payMethod" value="COD">
+          <div>
+            <div style="font-weight:700;font-size:14px;">Cash on Delivery (COD)</div>
+            <div style="font-size:12px;color:var(--text-muted);">Pay upon package delivery</div>
+          </div>
+        </div>
+
+        <button type="submit" style="width:100%;margin-top:24px;padding:16px;background:var(--black);color:#fff;border:none;font-weight:700;font-size:14px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">PLACE ORDER NOW →</button>
+      </form>
+    </div>
+
+    <!-- ORDER SUMMARY COLUMN -->
+    <div style="background:var(--bg-secondary);padding:28px;border-radius:4px;height:fit-content;border:1px solid var(--border);">
+      <h3 style="font-family:var(--font-heading);font-size:1.2rem;font-weight:700;margin-bottom:20px;text-transform:uppercase;">SUMMARY</h3>
+      <div id="checkoutSummaryList"></div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
+      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:1.2rem;">
+        <span>Total Payable</span>
+        <span id="chkTotal">₹0</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-bottom" style="border:none;padding-top:0;">
+      <span class="footer-copy">© 2026 Urban Rich. All rights reserved.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  let selectedPayMethod = 'ONLINE';
+
+  function selectPayment(method, el) {
+    selectedPayMethod = method;
+    document.querySelectorAll('.payment-option').forEach(opt => {
+      opt.style.borderColor = 'var(--border-dark)';
+      opt.style.background = 'var(--bg)';
+    });
+    el.style.borderColor = 'var(--black)';
+    el.style.background = 'var(--bg-secondary)';
+    el.querySelector('input').checked = true;
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const totals = window.UR_CART.calculateTotals();
+    document.getElementById('chkTotal').textContent = `₹${totals.total.toFixed(2)}`;
+
+    const list = document.getElementById('checkoutSummaryList');
+    const cart = window.UR_CART.get();
+    list.innerHTML = cart.map(item => `
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;">
+        <span>${item.name} (${item.size}) x${item.quantity}</span>
+        <span style="font-weight:700;">₹${item.price * item.quantity}</span>
+      </div>
+    `).join('') + `
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:12px;color:var(--text-muted);">
+        <span>Shipping Fee</span>
+        <span>${totals.shippingFee === 0 ? 'FREE (Waived)' : '₹60.00'}</span>
+      </div>
+    `;
+
+    document.getElementById('checkoutForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const totals = window.UR_CART.calculateTotals();
+      const orderNum = 'UR-' + Math.floor(100000 + Math.random() * 900000);
+
+      const orderData = {
+        order_number: orderNum,
+        customer_name: document.getElementById('custName').value,
+        customer_email: document.getElementById('custEmail').value,
+        customer_phone: document.getElementById('custPhone').value,
+        shipping_address: {
+          address: document.getElementById('custAddress').value,
+          city: document.getElementById('custCity').value,
+          state: document.getElementById('custState').value,
+          pincode: document.getElementById('custPincode').value
+        },
+        subtotal: totals.subtotal,
+        shipping_fee: totals.shippingFee,
+        total_amount: totals.total,
+        payment_status: selectedPayMethod === 'ONLINE' ? 'PENDING' : 'PAID',
+        order_status: 'PLACED'
+      };
+
+      if (window.urSupabase) {
+        const { data, error } = await window.urSupabase.from('orders').insert([orderData]).select().single();
+        if (error) {
+          console.error('Order creation error:', error);
+        }
+      }
+
+      if (selectedPayMethod === 'ONLINE') {
+        window.location.href = `payment.html?order_id=${orderNum}&amount=${totals.total}`;
+      } else {
+        window.UR_CART.set([]);
+        window.location.href = `order-success.html?order_id=${orderNum}`;
+      }
+    });
+  });
+</script>
+</body>
+</html>

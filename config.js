@@ -1,0 +1,18 @@
+// URBAN RICH STOREFRONT CONFIGURATION
+
+window.UR_CONFIG = {
+  // Supabase Database & Auth Credentials
+  SUPABASE_URL: "https://vemlqojqluimqegryxug.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlbWxxb2pxbHVpbXFlZ3J5eHVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5Nzc3NzksImV4cCI6MjEwMTU1Mzc3OX0.bmwk1KkJ8LMCQAhlZQzThShSQhcXqrkPVNGj-z8vPes",
+  SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlbWxxb2pxbHVpbXFlZ3J5eHVnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTk3Nzc3OSwiZXhwIjoyMTAxNTUzNzc5fQ.v-XqgNQuoir-nvrvEoIndsqu_G9WOEFJV",
+
+  // Cashfree Payment Gateway Credentials (ONLY FROM VERCEL ENVIRONMENT VARIABLES)
+  CASHFREE_APP_ID: (typeof process !== 'undefined' && process.env && process.env.CASHFREE_APP_ID) || "",
+  CASHFREE_SECRET_KEY: (typeof process !== 'undefined' && process.env && process.env.CASHFREE_SECRET_KEY) || "",
+  CASHFREE_ENV: "PRODUCTION",
+
+  // Web Push Notifications VAPID Keys
+  VAPID_SUBJECT: "mailto:urbanrich.bijapur@gmail.com",
+  VAPID_PUBLIC_KEY: "BLAiHhe09D65RzlO2uYBZlskrAI7M3Xg4Bu5vHN4jLjlP6Ss5aEvViiTwOPgWLQqbAn27_ATJtaOmlreHSjdFTc",
+  VAPID_PRIVATE_KEY: "LjCWxk2jZ7GDuOeKB7c98keCK2HmyROBzK8h99uQz84"
+};

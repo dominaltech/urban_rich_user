@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Placed Successfully! | Urban Rich</title>
+  <meta name="description" content="Thank you for your order at Urban Rich. Your order has been placed successfully.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="images/logo.jpg" type="image/jpeg">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="main.js"></script>
+  <style>
+    body {
+      background: #0f0f11;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-body);
+      margin: 0;
+      padding: 24px;
+      overflow-x: hidden;
+      position: relative;
+    }
+    #confettiCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .success-card {
+      background: #17171c;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 48px 36px;
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      position: relative;
+      z-index: 20;
+      animation: cardAppear 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes cardAppear {
+      from { opacity: 0; transform: translateY(30px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .checkmark-wrapper {
+      width: 84px;
+      height: 84px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.4);
+      animation: pulseGlow 2s infinite ease-in-out;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.4); transform: scale(1); }
+      50% { box-shadow: 0 0 45px rgba(16, 185, 129, 0.7); transform: scale(1.05); }
+    }
+    .checkmark-wrapper svg {
+      width: 44px;
+      height: 44px;
+      stroke: #ffffff;
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+      animation: drawCheck 0.8s 0.3s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    }
+    @keyframes drawCheck {
+      to { stroke-dashoffset: 0; }
+    }
+    .success-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .success-brand img {
+      height: 32px;
+      width: auto;
+    }
+    .success-brand span {
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #fff;
+    }
+    .success-title {
+      font-family: var(--font-heading);
+      font-size: clamp(24px, 4vw, 32px);
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #ffffff;
+      line-height: 1.2;
+    }
+    .success-subtitle {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.65);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+    .order-number-badge {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px dashed rgba(255, 255, 255, 0.25);
+      padding: 10px 20px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #34d399;
+      margin-bottom: 28px;
+    }
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .btn-primary-home {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      background: #ffffff;
+      color: #0f0f11;
+      font-size: 13.5px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      text-decoration: none;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15);
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+    }
+    .btn-primary-home:hover {
+      background: #e5e5e5;
+      transform: translateY(-2px);
+    }
+    .btn-secondary-track {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+    }
+    .btn-secondary-track:hover {
+      border-color: #ffffff;
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="confettiCanvas"></canvas>
+
+  <div class="success-card">
+    <div class="success-brand">
+      <img src="images/logo.jpg" alt="Urban Rich" />
+      <span>Urban Rich</span>
+    </div>
+
+    <div class="checkmark-wrapper">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+
+    <h1 class="success-title">Order Placed! 🎉</h1>
+    <p class="success-subtitle">
+      Thank you for shopping with Urban Rich. We’ve received your order and sent a confirmation receipt to your email.
+    </p>
+
+    <div class="order-number-badge">Order ID: <span id="orderIdVal">#UR-89421</span></div>
+
+    <div class="btn-group">
+      <a href="my-orders.html" class="btn-primary-home">View My Orders</a>
+      <a href="index.html" class="btn-secondary-track">Continue Shopping</a>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get('order_id') || 'UR-' + Math.floor(100000 + Math.random() * 900000);
+      document.getElementById('orderIdVal').textContent = orderId;
+    });
+
+    (function () {
+      const canvas = document.getElementById('confettiCanvas');
+      const ctx = canvas.getContext('2d');
+      let width = (canvas.width = window.innerWidth);
+      let height = (canvas.height = window.innerHeight);
+
+      window.addEventListener('resize', () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      });
+
+      const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#ffffff', '#eab308'];
+      const particles = [];
+      const particleCount = 130;
+
+      for (let i = 0; i < particleCount; i++) {
+        particles.push({
+          x: Math.random() * width,
+          y: Math.random() * height - height,
+          size: Math.random() * 8 + 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          vx: Math.random() * 4 - 2,
+          vy: Math.random() * 3 + 2,
+          rotation: Math.random() * 360,
+          rotationSpeed: Math.random() * 10 - 5
+        });
+      }
+
+      function render() {
+        ctx.clearRect(0, 0, width, height);
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.rotation += p.rotationSpeed;
+          if (p.y > height) {
+            p.y = -20;
+            p.x = Math.random() * width;
+          }
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rotation * Math.PI) / 180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 1.5);
+          ctx.restore();
+        });
+        requestAnimationFrame(render);
+      }
+      render();
+    })();
+  </script>
+</body>
+</html>
