@@ -15,8 +15,44 @@
   window.UR_CONFIG.SUPABASE_URL = SUPABASE_URL;
   window.UR_CONFIG.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
 
+  // Global Store Delivery & Shipping Defaults (Hydrated from cache or Supabase)
+  const cachedSettings = localStorage.getItem('ur_store_settings');
+  if (cachedSettings) {
+    try {
+      const parsed = JSON.parse(cachedSettings);
+      window.UR_CONFIG.DELIVERY_FEE = parsed.delivery_fee !== undefined ? parseFloat(parsed.delivery_fee) : 60;
+      window.UR_CONFIG.FREE_SHIPPING_ABOVE = parsed.free_shipping_above !== undefined ? parseFloat(parsed.free_shipping_above) : 999;
+    } catch(e) {
+      window.UR_CONFIG.DELIVERY_FEE = 60;
+      window.UR_CONFIG.FREE_SHIPPING_ABOVE = 999;
+    }
+  } else {
+    window.UR_CONFIG.DELIVERY_FEE = 60;
+    window.UR_CONFIG.FREE_SHIPPING_ABOVE = 999;
+  }
+
   // Global client reference
   window.urSupabase = null;
+
+  async function fetchStoreSettings() {
+    const client = window.urSupabase || createSupabaseClient();
+    if (!client) return;
+    try {
+      const { data, error } = await client
+        .from('store_settings')
+        .select('*')
+        .eq('id', 'default')
+        .maybeSingle();
+
+      if (data) {
+        if (data.delivery_fee !== undefined) window.UR_CONFIG.DELIVERY_FEE = parseFloat(data.delivery_fee);
+        if (data.free_shipping_above !== undefined) window.UR_CONFIG.FREE_SHIPPING_ABOVE = parseFloat(data.free_shipping_above);
+        localStorage.setItem('ur_store_settings', JSON.stringify(data));
+      }
+    } catch(e) {
+      console.log('Store settings fetch bypass:', e);
+    }
+  }
 
   function createSupabaseClient() {
     if (window.urSupabase) return window.urSupabase;
@@ -24,6 +60,7 @@
       try {
         window.urSupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         console.log('Storefront Supabase initialized successfully');
+        fetchStoreSettings();
         return window.urSupabase;
       } catch (e) {
         console.error('Error creating Supabase client:', e);
@@ -40,6 +77,7 @@
   const initInterval = setInterval(function() {
     if (createSupabaseClient() || retryCount > 20) {
       clearInterval(initInterval);
+      fetchStoreSettings();
       document.dispatchEvent(new CustomEvent('urSupabaseReady'));
     }
     retryCount++;
@@ -67,7 +105,7 @@
               <a href="plan-tshirt.html">Plan T-shirt</a>
               <a href="printing-tshirt.html">Printing T-shirt</a>
               <a href="oversize.html">Oversize</a>
-              <a href="women.html">Women</a>
+              <a href="hoodies.html">Hoodies</a>
               <a href="pants.html">Pants</a>
               <a href="baggy.html">Baggy</a>
             </div>
@@ -155,9 +193,14 @@
       let cart = this.get();
       let subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price || 0) * parseInt(item.quantity || 1)), 0);
       let isOnlyTestProduct = cart.length > 0 && cart.every(item => item.name && (item.name.includes('Test Product') || item.name.includes('1 Rupee') || item.name.includes('₹1')));
-      let shippingFee = isOnlyTestProduct ? 0 : (subtotal > 0 ? 60 : 0);
+      
+      let deliveryFee = (window.UR_CONFIG && window.UR_CONFIG.DELIVERY_FEE !== undefined) ? window.UR_CONFIG.DELIVERY_FEE : 60;
+      let freeThreshold = (window.UR_CONFIG && window.UR_CONFIG.FREE_SHIPPING_ABOVE !== undefined) ? window.UR_CONFIG.FREE_SHIPPING_ABOVE : 999;
+
+      let isFreeShipping = isOnlyTestProduct || (freeThreshold > 0 && subtotal >= freeThreshold);
+      let shippingFee = isFreeShipping ? 0 : (subtotal > 0 ? deliveryFee : 0);
       let total = subtotal + shippingFee;
-      return { subtotal, shippingFee, total, isOnlyTestProduct };
+      return { subtotal, shippingFee, total, isOnlyTestProduct, deliveryFee, freeThreshold, isFreeShipping };
     },
     updateBadge: function() {
       let cart = this.get();
@@ -224,8 +267,8 @@
           <a href="printing-tshirt.html" class="search-tag">Graphic Tees</a>
           <a href="oversize.html" class="search-tag">Oversize Tees</a>
           <a href="baggy.html" class="search-tag">Baggy Jeans</a>
-          <a href="pants.html" class="search-tag">Cargo Pants</a>
-          <a href="women.html" class="search-tag">Women's Tops</a>
+          <a href="pants.html" class="search-tag">Linen Pants</a>
+          <a href="hoodies.html" class="search-tag">Hoodies</a>
         </div>
       `;
       document.body.appendChild(overlay);

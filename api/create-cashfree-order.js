@@ -30,7 +30,7 @@ module.exports = async (req, res) => {
         customer_phone: customer_details.customer_phone
       },
       order_meta: {
-        return_url: req.headers.origin ? `${req.headers.origin}/order-success.html?order_id={order_id}` : `https://urbanrichshop.com/order-success.html?order_id={order_id}`
+        return_url: req.headers.origin ? `${req.headers.origin}/order-success.html?order_id={order_id}&payment=success` : `https://urbanrichshop.com/order-success.html?order_id={order_id}&payment=success`
       }
     });
 

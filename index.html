@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Urban Rich — Dress the Urban. Own the Rich.</title>
-  <meta name="description" content="Urban Rich — Premium streetwear clothing brand. Shop Plan T-shirts, Printing T-shirts, Oversized fits, Women's wear, Pants & Baggy styles. Free shipping above ₹999.">
+  <meta name="description" content="Urban Rich — Premium streetwear clothing brand. Shop Plan T-shirts, Printing T-shirts, Oversized fits, Hoodies, Pants & Baggy styles. Free shipping above ₹999.">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="images/logo.jpg" type="image/jpeg">
   <link rel="stylesheet" href="styles.css">
@@ -21,7 +21,7 @@
       <span>Buy 2 Get <strong>₹200 OFF</strong></span>
       <span>Buy 3 Get <strong>₹400 OFF</strong></span>
       <span>Free Shipping Above <strong>₹999</strong></span>
-      <span>Easy <strong>7-Day Returns</strong></span>
+      <span>Easy <strong>2-Day Returns</strong></span>
       <span>New Arrivals Every Week</span>
       <span>Buy 2 Get <strong>₹200 OFF</strong></span>
       <span>Buy 3 Get <strong>₹400 OFF</strong></span>
@@ -60,7 +60,7 @@
         <a href="oversize.html" class="nav-link">Oversize</a>
       </div>
       <div class="nav-item">
-        <a href="women.html" class="nav-link">Women</a>
+        <a href="hoodies.html" class="nav-link">Hoodies</a>
       </div>
       <div class="nav-item">
         <a href="pants.html" class="nav-link">Pants</a>
@@ -102,7 +102,7 @@
         <a href="plan-tshirt.html">Plan T-shirt</a>
         <a href="printing-tshirt.html">Printing T-shirt</a>
         <a href="oversize.html">Oversize</a>
-        <a href="women.html">Women</a>
+        <a href="hoodies.html">Hoodies</a>
         <a href="pants.html">Pants</a>
         <a href="baggy.html">Baggy</a>
       </div>
@@ -132,8 +132,8 @@
     <a href="printing-tshirt.html" class="search-tag">Graphic Tees</a>
     <a href="oversize.html" class="search-tag">Oversize Tees</a>
     <a href="baggy.html" class="search-tag">Baggy Jeans</a>
-    <a href="pants.html" class="search-tag">Cargo Pants</a>
-    <a href="women.html" class="search-tag">Women's Tops</a>
+    <a href="pants.html" class="search-tag">Linen Pants</a>
+    <a href="hoodies.html" class="search-tag">Hoodies</a>
   </div>
 </div>
 
@@ -240,11 +240,11 @@
             <span class="cat-tile-shop">Shop Now <svg viewBox="0 0 24 24" style="width:12px;height:12px;display:inline-block;vertical-align:middle;stroke:currentColor;fill:none;stroke-width:2"><polyline points="9 18 15 12 9 6"/></svg></span>
           </div>
         </a>
-        <a href="women.html" class="cat-tile fade-up">
+        <a href="hoodies.html" class="cat-tile fade-up">
           <div class="cat-tile-bg" style="background-image: url('images/prod3.jpg'); background-size: cover; background-position: center;"></div>
           <div class="cat-tile-overlay"></div>
           <div class="cat-tile-body">
-            <span class="cat-tile-name">Women</span>
+            <span class="cat-tile-name">Hoodies</span>
             <span class="cat-tile-shop">Shop Now <svg viewBox="0 0 24 24" style="width:12px;height:12px;display:inline-block;vertical-align:middle;stroke:currentColor;fill:none;stroke-width:2"><polyline points="9 18 15 12 9 6"/></svg></span>
           </div>
         </a>
@@ -306,7 +306,7 @@
           </div>
           <div>
             <div class="trust-title">Easy Returns</div>
-            <div class="trust-desc">7-day easy return policy</div>
+            <div class="trust-desc">2-day easy return policy</div>
           </div>
         </div>
         <div class="trust-item fade-up">
@@ -446,11 +446,12 @@
 
   async function loadHomePageData() {
     const grid = document.getElementById('homeProductGrid');
-    if (!window.urSupabase) return;
+    const client = window.urSupabase || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.UR_CONFIG.SUPABASE_URL, window.UR_CONFIG.SUPABASE_ANON_KEY) : null);
+    if (!client) return;
 
     try {
       // Load Hero Banners if configured in DB
-      const { data: banners } = await window.urSupabase.from('banners').select('*').eq('is_active', true).order('display_order', { ascending: true });
+      const { data: banners } = await client.from('banners').select('*').eq('is_active', true).order('display_order', { ascending: true });
       if (banners && banners.length > 0) {
         const slider = document.getElementById('heroSlider');
         slider.innerHTML = banners.map((b, idx) => `
@@ -472,7 +473,7 @@
       }
 
       // Load Featured Products
-      const { data: products } = await window.urSupabase.from('products').select('*, categories(slug, name)').eq('status', 'published').order('created_at', { ascending: false }).limit(8);
+      const { data: products } = await client.from('products').select('*, categories(slug, name)').eq('status', 'published').order('created_at', { ascending: false }).limit(8);
 
       if (products && products.length > 0) {
         grid.innerHTML = products.map(p => `
@@ -495,7 +496,7 @@
           </div>
         `).join('');
       }
-    } catch(e) { console.error(e); }
+    } catch(e) { console.error('loadHomePageData error:', e); }
   }
 
   document.addEventListener('DOMContentLoaded', function() {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Oversized Tees — Urban Rich</title>
+  <title>Hoodies & Sweatshirts — Urban Rich</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="images/logo.jpg" type="image/jpeg">
   <link rel="stylesheet" href="styles.css">
@@ -43,8 +43,8 @@
       <div class="nav-item"><a href="shop.html" class="nav-link">Shop All</a></div>
       <div class="nav-item"><a href="plan-tshirt.html" class="nav-link">Plan T-shirt</a></div>
       <div class="nav-item"><a href="printing-tshirt.html" class="nav-link">Printing T-shirt</a></div>
-      <div class="nav-item"><a href="oversize.html" class="nav-link active">Oversize</a></div>
-      <div class="nav-item"><a href="hoodies.html" class="nav-link">Hoodies</a></div>
+      <div class="nav-item"><a href="oversize.html" class="nav-link">Oversize</a></div>
+      <div class="nav-item"><a href="hoodies.html" class="nav-link active">Hoodies</a></div>
       <div class="nav-item"><a href="pants.html" class="nav-link">Pants</a></div>
       <div class="nav-item"><a href="baggy.html" class="nav-link">Baggy</a></div>
     </div>
@@ -64,8 +64,8 @@
 </header>
 
 <div style="background: var(--bg-secondary); padding: 48px 24px; text-align: center; border-bottom: 1px solid var(--border);">
-  <h1 style="font-family: var(--font-heading); font-size: 2.2rem; font-weight: 700; text-transform: uppercase;">OVERSIZED COLLECTION</h1>
-  <p style="color: var(--text-muted); max-width: 600px; margin: 8px auto 0; font-size: 14px;">Heavyweight 240 GSM bio-washed combed cotton, drop shoulder street cuts.</p>
+  <h1 style="font-family: var(--font-heading); font-size: 2.2rem; font-weight: 700; text-transform: uppercase;">HOODIES & SWEATSHIRTS</h1>
+  <p style="color: var(--text-muted); max-width: 600px; margin: 8px auto 0; font-size: 14px;">Heavyweight bio-washed cotton fleece, relaxed streetwear hoodies &amp; cozy drop-shoulder fits.</p>
 </div>
 
 <main class="section">
@@ -153,7 +153,7 @@
     const client = window.urSupabase || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.UR_CONFIG.SUPABASE_URL, window.UR_CONFIG.SUPABASE_ANON_KEY) : null);
     if (!client) return;
     try {
-      const { data: category } = await client.from('categories').select('id').eq('slug', 'oversized').single();
+      const { data: category } = await client.from('categories').select('id').eq('slug', 'hoodies').single();
       let query = client.from('products').select('*').eq('status', 'published');
       if (category) query = query.eq('category_id', category.id);
       const { data: products } = await query;
@@ -168,7 +168,7 @@
             <a href="product.html?id=${p.id}"><img src="${p.main_image || 'images/logo.jpg'}" alt="${p.name}"></a>
           </div>
           <div class="prod-info">
-            <div class="product-category" style="font-size:11px;color:var(--text-muted);font-weight:700;">OVERSIZED TEE</div>
+            <div class="product-category" style="font-size:11px;color:var(--text-muted);font-weight:700;">HOODIES</div>
             <a href="product.html?id=${p.id}" class="prod-name" style="font-weight:700;font-size:14px;margin:4px 0;">${p.name}</a>
             <div class="prod-price-row">
               <span class="prod-price">₹${p.price}</span>
