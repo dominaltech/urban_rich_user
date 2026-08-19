@@ -40,7 +40,7 @@ module.exports = async (req, res) => {
 
         // 2. Dispatch Push Notification to Admin PWA
         try {
-          const vapidSubject = process.env.VAPID_SUBJECT || "mailto:urbanrich.bijapur@gmail.com";
+          const vapidSubject = process.env.VAPID_SUBJECT || "mailto:support@urbanrichshop.com";
           const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BLAiHhe09D65RzlO2uYBZlskrAI7M3Xg4Bu5vHN4jLjlP6Ss5aEvViiTwOPgWLQqbAn27_ATJtaOmlreHSjdFTc";
           const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || "LjCWxk2jZ7GDuOeKB7c98keCK2HmyROBzK8h99uQz84";
           webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);

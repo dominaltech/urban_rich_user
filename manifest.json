@@ -9,12 +9,12 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "images/logo.jpg",
+      "src": "urbanlogo.jpeg",
       "sizes": "192x192",
       "type": "image/jpeg"
     },
     {
-      "src": "images/logo.jpg",
+      "src": "urbanlogo.jpeg",
       "sizes": "512x512",
       "type": "image/jpeg"
     }
