@@ -81,6 +81,7 @@
       <div class="nav-item"><a href="hoodies.html" class="nav-link">Hoodies</a></div>
       <div class="nav-item"><a href="pants.html" class="nav-link">Pants</a></div>
       <div class="nav-item"><a href="baggy.html" class="nav-link">Baggy</a></div>
+      <!-- <div class="nav-item"><a href="women.html" class="nav-link">Women</a></div> -->
     </div>
     <div class="nav-icons">
       <button class="nav-icon-btn js-search-open" aria-label="Search">
@@ -116,6 +117,7 @@
         <a href="hoodies.html">Hoodies</a>
         <a href="pants.html">Pants</a>
         <a href="baggy.html">Baggy</a>
+        <!-- <a href="women.html">Women</a> -->
       </div>
       <div class="ham-divider"></div>
       <a href="my-orders.html" class="ham-link">My Orders</a>
@@ -150,6 +152,15 @@
 
 <main class="section" style="padding-top: 32px;">
   <div class="container">
+    <!-- DYNAMIC CATEGORY HERO BANNER -->
+    <div id="shopCatBanner" style="display:none; margin-bottom: 28px; border-radius: 4px; overflow: hidden; height: 180px; position: relative; background-size: cover; background-position: center; border: 1px solid var(--border);">
+      <div style="position: absolute; inset: 0; background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.7));"></div>
+      <div style="position: absolute; bottom: 20px; left: 24px; color: #fff; z-index: 1;">
+        <h3 id="shopCatBannerTitle" style="font-family: var(--font-heading); font-size: 1.5rem; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;"></h3>
+        <p id="shopCatBannerDesc" style="font-size: 0.85rem; opacity: 0.85; max-width: 600px; margin: 0;"></p>
+      </div>
+    </div>
+
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
       <h2 id="activeCategoryTitle" style="font-family: var(--font-heading); font-size: 1.35rem; font-weight: 700; text-transform: uppercase;">ALL STREETWEAR COLLECTION</h2>
       <span id="productCountBadge" style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">Loading items...</span>
@@ -290,13 +301,28 @@
     if (el) el.classList.add('active');
     activeCategorySlug = slug;
 
+    const bannerBox = document.getElementById('shopCatBanner');
+    const bannerTitle = document.getElementById('shopCatBannerTitle');
+    const bannerDesc = document.getElementById('shopCatBannerDesc');
+
     if (slug === 'all') {
       document.getElementById('activeCategoryTitle').textContent = 'ALL STREETWEAR COLLECTION';
+      if (bannerBox) bannerBox.style.display = 'none';
     } else if (slug === 'test-items') {
       document.getElementById('activeCategoryTitle').textContent = '₹1 TEST PRODUCTS';
+      if (bannerBox) bannerBox.style.display = 'none';
     } else {
       const match = activeCategories.find(c => c.slug === slug || c.id === slug);
       document.getElementById('activeCategoryTitle').textContent = match ? `${match.name.toUpperCase()} COLLECTION` : `${slug.replace(/-/g, ' ').toUpperCase()} COLLECTION`;
+
+      if (match && (match.banner_url || match.image_url) && bannerBox) {
+        bannerBox.style.backgroundImage = `url('${match.banner_url || match.image_url}')`;
+        if (bannerTitle) bannerTitle.textContent = match.name;
+        if (bannerDesc) bannerDesc.textContent = match.description || 'Explore the complete curated streetwear drop.';
+        bannerBox.style.display = 'block';
+      } else if (bannerBox) {
+        bannerBox.style.display = 'none';
+      }
     }
 
     filterProducts();

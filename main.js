@@ -108,6 +108,7 @@
               <a href="hoodies.html">Hoodies</a>
               <a href="pants.html">Pants</a>
               <a href="baggy.html">Baggy</a>
+              <!-- <a href="women.html">Women</a> -->
             </div>
             <div class="ham-divider" style="height:1px;background:var(--border);margin:16px 0;"></div>
             <a href="my-orders.html" class="ham-link">My Orders</a>
@@ -366,6 +367,12 @@
       if (navLinksContainer) {
         let html = '<div class="nav-item"><a href="shop.html" class="nav-link">Shop All</a></div>';
         categories.forEach(cat => {
+          // Commented out Women link from top bar & menu
+          if (cat.slug === 'women' || (cat.name && cat.name.toLowerCase() === 'women')) {
+            html += `\n          <!-- <div class="nav-item"><a href="women.html" class="nav-link">Women</a></div> -->`;
+            return;
+          }
+
           // Map known slugs to specific static files or shop.html?category=slug
           let targetUrl = `shop.html?category=${encodeURIComponent(cat.slug || cat.id)}`;
           if (cat.slug === 'oversize' || cat.slug === 'oversized') targetUrl = 'oversize.html';
@@ -385,6 +392,12 @@
       if (hamSublinks) {
         let subHtml = '';
         categories.forEach(cat => {
+          // Commented out Women link from drawer
+          if (cat.slug === 'women' || (cat.name && cat.name.toLowerCase() === 'women')) {
+            subHtml += `\n              <!-- <a href="women.html">Women</a> -->`;
+            return;
+          }
+
           let targetUrl = `shop.html?category=${encodeURIComponent(cat.slug || cat.id)}`;
           if (cat.slug === 'oversize' || cat.slug === 'oversized') targetUrl = 'oversize.html';
           else if (cat.slug === 'baggy') targetUrl = 'baggy.html';
