@@ -367,9 +367,12 @@
       if (navLinksContainer) {
         let html = '<div class="nav-item"><a href="shop.html" class="nav-link">Shop All</a></div>';
         categories.forEach(cat => {
-          // Commented out Women link from top bar & menu
+          // Omit Women & Test categories from top bar & menu
           if (cat.slug === 'women' || (cat.name && cat.name.toLowerCase() === 'women')) {
             html += `\n          <!-- <div class="nav-item"><a href="women.html" class="nav-link">Women</a></div> -->`;
+            return;
+          }
+          if (cat.slug === 'test-items' || (cat.name && cat.name.toLowerCase().includes('test'))) {
             return;
           }
 
@@ -392,9 +395,12 @@
       if (hamSublinks) {
         let subHtml = '';
         categories.forEach(cat => {
-          // Commented out Women link from drawer
+          // Omit Women & Test categories from drawer
           if (cat.slug === 'women' || (cat.name && cat.name.toLowerCase() === 'women')) {
             subHtml += `\n              <!-- <a href="women.html">Women</a> -->`;
+            return;
+          }
+          if (cat.slug === 'test-items' || (cat.name && cat.name.toLowerCase().includes('test'))) {
             return;
           }
 

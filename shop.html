@@ -145,7 +145,6 @@
       <button class="filter-pill" onclick="selectCategory('plain-tshirts', this)">👕 PLAIN TEES</button>
       <button class="filter-pill" onclick="selectCategory('printed-tshirts', this)">🎨 PRINTED</button>
       <button class="filter-pill" onclick="selectCategory('hoodies', this)">🧥 HOODIES</button>
-      <button class="filter-pill" onclick="selectCategory('test-items', this)" style="border-color: var(--sale-red); color: var(--sale-red);">⚡ ₹1 TEST ITEM</button>
     </div>
   </div>
 </div>
@@ -254,7 +253,7 @@
 
     try {
       const categories = await window.fetchStoreCategories();
-      activeCategories = categories || [];
+      activeCategories = (categories || []).filter(c => c.slug !== 'test-items' && c.slug !== 'women' && !(c.name || '').toLowerCase().includes('test') && !(c.name || '').toLowerCase().includes('women'));
 
       if (activeCategories.length > 0) {
         let pillsHtml = `<button class="filter-pill ${activeCategorySlug === 'all' ? 'active' : ''}" onclick="selectCategory('all', this)">ALL PRODUCTS</button>`;
@@ -262,7 +261,6 @@
           const isAct = activeCategorySlug === cat.slug || activeCategorySlug === cat.id;
           pillsHtml += `<button class="filter-pill ${isAct ? 'active' : ''}" onclick="selectCategory('${cat.slug || cat.id}', this)">${cat.name.toUpperCase()}</button>`;
         });
-        pillsHtml += `<button class="filter-pill ${activeCategorySlug === 'test-items' ? 'active' : ''}" onclick="selectCategory('test-items', this)" style="border-color: var(--sale-red); color: var(--sale-red);">⚡ ₹1 TEST ITEM</button>`;
         filterContainer.innerHTML = pillsHtml;
       }
     } catch(err) {
@@ -308,9 +306,6 @@
     if (slug === 'all') {
       document.getElementById('activeCategoryTitle').textContent = 'ALL STREETWEAR COLLECTION';
       if (bannerBox) bannerBox.style.display = 'none';
-    } else if (slug === 'test-items') {
-      document.getElementById('activeCategoryTitle').textContent = '₹1 TEST PRODUCTS';
-      if (bannerBox) bannerBox.style.display = 'none';
     } else {
       const match = activeCategories.find(c => c.slug === slug || c.id === slug);
       document.getElementById('activeCategoryTitle').textContent = match ? `${match.name.toUpperCase()} COLLECTION` : `${slug.replace(/-/g, ' ').toUpperCase()} COLLECTION`;
@@ -337,8 +332,7 @@
       const catId = p.category_id || (p.categories ? p.categories.id : '');
       const matchesCategory = activeCategorySlug === 'all' || 
                               catSlug === activeCategorySlug || 
-                              catId === activeCategorySlug || 
-                              (activeCategorySlug === 'test-items' && p.price == 1);
+                              catId === activeCategorySlug;
       const matchesSearch = !searchVal || p.name.toLowerCase().includes(searchVal) || (p.description || '').toLowerCase().includes(searchVal);
       return matchesCategory && matchesSearch;
     });

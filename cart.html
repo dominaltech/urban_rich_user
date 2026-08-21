@@ -84,9 +84,6 @@
         <span>Shipping Fee</span>
         <span id="shippingVal">₹60.00</span>
       </div>
-      <div id="testProductNotice" style="display:none;font-size:11px;color:var(--sale-red);font-weight:700;margin-bottom:12px;">
-        ★ SPECIAL TEST ITEM RULE: ₹60 Delivery Fee Waived (Free Shipping) ★
-      </div>
       <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
       <div style="display:flex;justify-content:space-between;font-size:1.2rem;font-weight:700;color:var(--text);">
         <span>Estimated Total</span>
@@ -181,7 +178,6 @@
       document.getElementById('subtotalVal').textContent = '₹0.00';
       document.getElementById('shippingVal').textContent = '₹0.00';
       document.getElementById('totalVal').textContent = '₹0.00';
-      document.getElementById('testProductNotice').style.display = 'none';
       return;
     }
 
@@ -206,7 +202,6 @@
     document.getElementById('subtotalVal').textContent = `₹${totals.subtotal.toFixed(2)}`;
     document.getElementById('shippingVal').textContent = totals.shippingFee === 0 ? 'FREE (₹0)' : `₹${totals.shippingFee.toFixed(2)}`;
     document.getElementById('totalVal').textContent = `₹${totals.total.toFixed(2)}`;
-    document.getElementById('testProductNotice').style.display = totals.isOnlyTestProduct ? 'block' : 'none';
   }
 
   function updateQty(id, size, delta) {

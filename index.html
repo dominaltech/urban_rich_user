@@ -444,7 +444,7 @@
         .order('display_order', { ascending: true });
 
       if (categories && categories.length > 0 && catGrid) {
-        const validCats = categories.filter(c => c.slug !== 'women' && (c.name || '').toLowerCase() !== 'women');
+        const validCats = categories.filter(c => c.slug !== 'women' && c.slug !== 'test-items' && !(c.name || '').toLowerCase().includes('women') && !(c.name || '').toLowerCase().includes('test'));
         if (validCats.length > 0) {
           const defaultBanners = {
             'plan-tshirt': 'images/prod1.jpg',
