@@ -235,6 +235,29 @@
 <script>
   let rawProducts = [];
   let activeCategorySlug = 'all';
+  let activeCategories = [];
+
+  async function loadShopCategories() {
+    const filterContainer = document.getElementById('filterPills');
+    if (!filterContainer) return;
+
+    try {
+      const categories = await window.fetchStoreCategories();
+      activeCategories = categories || [];
+
+      if (activeCategories.length > 0) {
+        let pillsHtml = `<button class="filter-pill ${activeCategorySlug === 'all' ? 'active' : ''}" onclick="selectCategory('all', this)">ALL PRODUCTS</button>`;
+        activeCategories.forEach(cat => {
+          const isAct = activeCategorySlug === cat.slug || activeCategorySlug === cat.id;
+          pillsHtml += `<button class="filter-pill ${isAct ? 'active' : ''}" onclick="selectCategory('${cat.slug || cat.id}', this)">${cat.name.toUpperCase()}</button>`;
+        });
+        pillsHtml += `<button class="filter-pill ${activeCategorySlug === 'test-items' ? 'active' : ''}" onclick="selectCategory('test-items', this)" style="border-color: var(--sale-red); color: var(--sale-red);">⚡ ₹1 TEST ITEM</button>`;
+        filterContainer.innerHTML = pillsHtml;
+      }
+    } catch(err) {
+      console.error('loadShopCategories error:', err);
+    }
+  }
 
   async function loadShopData() {
     const grid = document.getElementById('shopGrid');
@@ -242,9 +265,11 @@
     if (!client) return;
 
     try {
+      await loadShopCategories();
+
       const { data: products, error } = await client
         .from('products')
-        .select('*, categories(slug, name)')
+        .select('*, categories(id, slug, name)')
         .eq('status', 'published')
         .order('created_at', { ascending: false });
 
@@ -265,18 +290,15 @@
     if (el) el.classList.add('active');
     activeCategorySlug = slug;
 
-    const titleMap = {
-      'all': 'ALL STREETWEAR COLLECTION',
-      'oversized': 'OVERSIZED TEES',
-      'baggy': 'BAGGY DENIM',
-      'pants': 'LINEN PANTS & TROUSERS',
-      'plain-tshirts': 'PLAIN COTTON TEES',
-      'printed-tshirts': 'PRINTED STREETWEAR',
-      'hoodies': 'HOODIES & SWEATSHIRTS',
-      'test-items': '₹1 TEST PRODUCT'
-    };
+    if (slug === 'all') {
+      document.getElementById('activeCategoryTitle').textContent = 'ALL STREETWEAR COLLECTION';
+    } else if (slug === 'test-items') {
+      document.getElementById('activeCategoryTitle').textContent = '₹1 TEST PRODUCTS';
+    } else {
+      const match = activeCategories.find(c => c.slug === slug || c.id === slug);
+      document.getElementById('activeCategoryTitle').textContent = match ? `${match.name.toUpperCase()} COLLECTION` : `${slug.replace(/-/g, ' ').toUpperCase()} COLLECTION`;
+    }
 
-    document.getElementById('activeCategoryTitle').textContent = titleMap[slug] || 'STREETWEAR COLLECTION';
     filterProducts();
   }
 
@@ -286,7 +308,11 @@
 
     let filtered = rawProducts.filter(p => {
       const catSlug = p.categories ? p.categories.slug : '';
-      const matchesCategory = activeCategorySlug === 'all' || catSlug === activeCategorySlug || (activeCategorySlug === 'test-items' && p.price == 1);
+      const catId = p.category_id || (p.categories ? p.categories.id : '');
+      const matchesCategory = activeCategorySlug === 'all' || 
+                              catSlug === activeCategorySlug || 
+                              catId === activeCategorySlug || 
+                              (activeCategorySlug === 'test-items' && p.price == 1);
       const matchesSearch = !searchVal || p.name.toLowerCase().includes(searchVal) || (p.description || '').toLowerCase().includes(searchVal);
       return matchesCategory && matchesSearch;
     });
@@ -322,9 +348,13 @@
   document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const searchQuery = urlParams.get('search');
+    const catQuery = urlParams.get('category');
     if (searchQuery) {
       const searchInput = document.getElementById('shopSearch');
       if (searchInput) searchInput.value = searchQuery;
+    }
+    if (catQuery) {
+      activeCategorySlug = catQuery;
     }
     loadShopData();
     document.addEventListener('urSupabaseReady', loadShopData);

@@ -340,16 +340,81 @@
     }
   }
 
-  // DOM INITIALIZATION
-  document.addEventListener('DOMContentLoaded', function() {
-    window.UR_CART.updateBadge();
-    initAnimations();
-    initOverlayListeners();
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js')
-        .then(reg => console.log('Storefront SW registered:', reg))
-        .catch(err => console.error('Storefront SW registration failed:', err));
-    }
-  });
+    // 7. DYNAMIC CATEGORY NAVIGATION LOADER
+    window.fetchStoreCategories = async function() {
+      const client = window.urSupabase || createSupabaseClient();
+      if (!client) return [];
+      try {
+        const { data, error } = await client
+          .from('categories')
+          .select('*')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true });
+        return data || [];
+      } catch (err) {
+        console.error('fetchStoreCategories error:', err);
+        return [];
+      }
+    };
 
-})();
+    async function initDynamicCategoriesNav() {
+      const categories = await window.fetchStoreCategories();
+      if (!categories || categories.length === 0) return;
+
+      // Update Desktop Nav Links
+      const navLinksContainer = document.querySelector('.site-header .nav-links');
+      if (navLinksContainer) {
+        let html = '<div class="nav-item"><a href="shop.html" class="nav-link">Shop All</a></div>';
+        categories.forEach(cat => {
+          // Map known slugs to specific static files or shop.html?category=slug
+          let targetUrl = `shop.html?category=${encodeURIComponent(cat.slug || cat.id)}`;
+          if (cat.slug === 'oversize' || cat.slug === 'oversized') targetUrl = 'oversize.html';
+          else if (cat.slug === 'baggy') targetUrl = 'baggy.html';
+          else if (cat.slug === 'hoodies') targetUrl = 'hoodies.html';
+          else if (cat.slug === 'pants' || cat.slug === 'linen-pants') targetUrl = 'pants.html';
+          else if (cat.slug === 'plan-tshirt' || cat.slug === 'plain-t-shirts') targetUrl = 'plan-tshirt.html';
+          else if (cat.slug === 'printing-tshirt' || cat.slug === 'printed-t-shirts') targetUrl = 'printing-tshirt.html';
+
+          html += `<div class="nav-item"><a href="${targetUrl}" class="nav-link">${cat.name}</a></div>`;
+        });
+        navLinksContainer.innerHTML = html;
+      }
+
+      // Update Mobile Drawer Sublinks
+      const hamSublinks = document.querySelector('.hamburger-drawer .ham-sublinks');
+      if (hamSublinks) {
+        let subHtml = '';
+        categories.forEach(cat => {
+          let targetUrl = `shop.html?category=${encodeURIComponent(cat.slug || cat.id)}`;
+          if (cat.slug === 'oversize' || cat.slug === 'oversized') targetUrl = 'oversize.html';
+          else if (cat.slug === 'baggy') targetUrl = 'baggy.html';
+          else if (cat.slug === 'hoodies') targetUrl = 'hoodies.html';
+          else if (cat.slug === 'pants' || cat.slug === 'linen-pants') targetUrl = 'pants.html';
+          else if (cat.slug === 'plan-tshirt' || cat.slug === 'plain-t-shirts') targetUrl = 'plan-tshirt.html';
+          else if (cat.slug === 'printing-tshirt' || cat.slug === 'printed-t-shirts') targetUrl = 'printing-tshirt.html';
+
+          subHtml += `<a href="${targetUrl}">${cat.name}</a>`;
+        });
+        hamSublinks.innerHTML = subHtml;
+      }
+    }
+
+    // DOM INITIALIZATION
+    document.addEventListener('DOMContentLoaded', function() {
+      window.UR_CART.updateBadge();
+      initAnimations();
+      initOverlayListeners();
+      initDynamicCategoriesNav();
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('Storefront SW registered:', reg))
+          .catch(err => console.error('Storefront SW registration failed:', err));
+      }
+    });
+
+    document.addEventListener('urSupabaseReady', function() {
+      initDynamicCategoriesNav();
+    });
+
+  })();
+
