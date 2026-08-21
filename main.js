@@ -341,16 +341,37 @@
     }
   }
 
-    // 7. DYNAMIC CATEGORY NAVIGATION LOADER
-    window.fetchStoreCategories = async function() {
+    // 7. DYNAMIC CATEGORY NAVIGATION LOADER WITH SMART SESSION CACHING
+    window.fetchStoreCategories = async function(forceRefresh = false) {
+      const cacheKey = 'ur_cached_categories';
+      const cacheTimeKey = 'ur_cached_categories_time';
+      const now = Date.now();
+
+      if (!forceRefresh) {
+        const cached = sessionStorage.getItem(cacheKey);
+        const cachedTime = sessionStorage.getItem(cacheTimeKey);
+        if (cached && cachedTime && (now - parseInt(cachedTime, 10)) < 300000) {
+          try {
+            return JSON.parse(cached);
+          } catch(e) {}
+        }
+      }
+
       const client = window.urSupabase || createSupabaseClient();
       if (!client) return [];
       try {
         const { data, error } = await client
           .from('categories')
-          .select('*')
+          .select('id, name, slug, display_order, banner_url, image_url, is_active')
           .eq('is_active', true)
           .order('display_order', { ascending: true });
+
+        if (data && data.length > 0) {
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify(data));
+            sessionStorage.setItem(cacheTimeKey, now.toString());
+          } catch(e) {}
+        }
         return data || [];
       } catch (err) {
         console.error('fetchStoreCategories error:', err);

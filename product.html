@@ -392,7 +392,7 @@
           <!-- LEFT: GALLERY / SLIDER -->
           <div class="pdp-gallery-wrap">
             <div class="pdp-main-stage" id="mainStage">
-              <img src="${galleryImages[0]}" id="mainPdpImage" class="pdp-main-img" alt="${product.name}">
+              <img src="${galleryImages[0]}" id="mainPdpImage" class="pdp-main-img" alt="${product.name}" fetchpriority="high" decoding="async">
               
               ${galleryImages.length > 1 ? `
                 <button class="gallery-nav-arrow gallery-nav-prev" onclick="prevPdpImage(event)">
@@ -409,7 +409,7 @@
               <div class="pdp-thumbs-strip" id="thumbsStrip">
                 ${galleryImages.map((imgUrl, idx) => `
                   <div class="pdp-thumb-item ${idx === 0 ? 'active' : ''}" onclick="selectPdpImage(${idx})">
-                    <img src="${imgUrl}" alt="Thumbnail ${idx + 1}">
+                    <img src="${imgUrl}" alt="Thumbnail ${idx + 1}" loading="lazy" decoding="async">
                   </div>
                 `).join('')}
               </div>

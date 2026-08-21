@@ -278,7 +278,7 @@
 
       const { data: products, error } = await client
         .from('products')
-        .select('*, categories(id, slug, name)')
+        .select('id, name, price, mrp, main_image, is_new_arrival, category_id, categories(id, slug, name)')
         .eq('status', 'published')
         .order('created_at', { ascending: false });
 
@@ -349,7 +349,7 @@
         <div class="prod-image-wrap">
           ${p.is_new_arrival ? '<span class="prod-tag">NEW</span>' : ''}
           <a href="product.html?id=${p.id}">
-            <img src="${p.main_image || 'images/logo.jpg'}" alt="${p.name}">
+            <img src="${p.main_image || 'images/logo.jpg'}" alt="${p.name}" loading="lazy" decoding="async">
           </a>
         </div>
         <div class="prod-info">
