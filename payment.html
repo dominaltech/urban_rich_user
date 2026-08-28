@@ -93,6 +93,13 @@
     const urlParams = new URLSearchParams(window.location.search);
     const orderId = currentOrderId || urlParams.get('order_id');
     if (orderId) {
+      try {
+        await fetch('/api/verify-cashfree-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order_id: orderId, is_explicit_cancel: true })
+        });
+      } catch(e) {}
       window.location.href = `order-success.html?order_id=${encodeURIComponent(orderId)}&status=CANCELLED`;
     } else {
       window.location.href = 'cart.html';

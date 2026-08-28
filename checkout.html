@@ -273,6 +273,19 @@
         }
       }
 
+      // Dispatch push notification to Admin for new pending checkout attempt
+      fetch('/api/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: '⏳ PAYMENT PENDING - NEW CHECKOUT',
+          message: `Order #${orderNum} (₹${totals.total}) started by ${orderData.customer_name} (${orderData.customer_phone}) — awaiting payment.`,
+          event_type: 'PAYMENT_PENDING',
+          order_id: orderNum,
+          amount: totals.total
+        })
+      }).catch(e => console.log('Pending push dispatch bypass:', e));
+
       // Do NOT clear cart yet! Cart is preserved until payment is confirmed on order-success.html
       window.location.href = `payment.html?order_id=${orderNum}&amount=${totals.total}`;
     });
