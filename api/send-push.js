@@ -1,5 +1,7 @@
-// Vercel Serverless Function to Send Encrypted Web Push Notifications to Admin PWA
+// Vercel Serverless Function to Send Encrypted Web Push Notifications to Admin PWA (with strict deduplication)
 const webpush = require('web-push');
+
+const recentPushes = global.__recentPushes || (global.__recentPushes = new Map());
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -13,11 +15,23 @@ module.exports = async (req, res) => {
   webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
 
   try {
-    const { title, message, order_id, amount } = req.body || {};
+    const { title, message, order_id, amount, event_type } = req.body || {};
+    const notifKey = `${order_id || 'general'}_${event_type || title || 'order'}`;
+    const now = Date.now();
+
+    // 🔒 STRICT DEDUPLICATION: Prevent duplicate pushes for the same order event within 5 minutes
+    if (order_id && recentPushes.has(notifKey)) {
+      const lastSent = recentPushes.get(notifKey);
+      if (now - lastSent < 300000) {
+        console.log(`[Push Deduplicated] Push for ${notifKey} was already dispatched ${Math.round((now - lastSent)/1000)}s ago.`);
+        return res.status(200).json({ success: true, count: 0, deduplicated: true, message: 'Notification already dispatched recently.' });
+      }
+    }
+    recentPushes.set(notifKey, now);
 
     const payload = JSON.stringify({
       title: title || 'NEW URBAN RICH ORDER!',
-      body: message || `New order ${order_id || ''} received for ₹${amount || '0'}`,
+      body: message || `Order ${order_id || ''} for ₹${amount || '0'}`,
       order_id: order_id || '',
       icon: '/images/logo.jpg'
     });

@@ -215,6 +215,26 @@
     </div>
   </section>
 
+  <!-- RAKSHA BANDHAN 5% OFF MINIMAL BANNER STRIP -->
+  <section class="rakhi-home-strip" id="rakhiHomeStrip">
+    <div class="container">
+      <div class="rakhi-strip-inner">
+        <div class="rakhi-strip-left">
+          <div class="rakhi-badge-pill">✨ RAKSHA BANDHAN SPECIAL</div>
+          <div class="rakhi-strip-text">
+            <span class="rakhi-strip-title">FLAT 5% OFF ON ALL ORDERS</span>
+            <span class="rakhi-strip-sub">Celebrate with luxury streetwear — Use code <strong class="rakhi-strip-code">RAKHI5</strong> at checkout</span>
+          </div>
+        </div>
+        <div class="rakhi-strip-right">
+          <button class="rakhi-strip-btn" id="rakhiHomeApplyBtn" onclick="toggleRakhiHomeBanner()">
+            <span id="rakhiHomeBtnText">⚡ APPLY 5% OFF</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- CATEGORY TILES -->
   <section class="section">
     <div class="container">
@@ -537,9 +557,38 @@
     } catch(e) { console.error('loadHomePageData error:', e); }
   }
 
+  function updateRakhiHomeBannerState() {
+    const isApplied = window.UR_COUPON && window.UR_COUPON.isApplied('RAKHI5');
+    const strip = document.getElementById('rakhiHomeStrip');
+    const btnText = document.getElementById('rakhiHomeBtnText');
+    if (!strip || !btnText) return;
+
+    if (isApplied) {
+      strip.classList.add('applied');
+      btnText.textContent = '✓ 5% OFF APPLIED (RAKHI5)';
+    } else {
+      strip.classList.remove('applied');
+      btnText.textContent = '⚡ APPLY 5% OFF';
+    }
+  }
+
+  function toggleRakhiHomeBanner() {
+    if (!window.UR_COUPON) return;
+    const isApplied = window.UR_COUPON.isApplied('RAKHI5');
+    if (isApplied) {
+      window.UR_COUPON.remove();
+      if (typeof window.UR_TOAST === 'function') window.UR_TOAST('Coupon RAKHI5 removed.');
+    } else {
+      window.UR_COUPON.apply('RAKHI5');
+      if (typeof window.UR_TOAST === 'function') window.UR_TOAST('🎉 Raksha Bandhan 5% OFF coupon applied to your bag!');
+    }
+    updateRakhiHomeBannerState();
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     startHeroSlider();
     loadHomePageData();
+    updateRakhiHomeBannerState();
     document.addEventListener('urSupabaseReady', loadHomePageData);
   });
 </script>

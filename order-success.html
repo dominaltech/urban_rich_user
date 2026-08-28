@@ -556,11 +556,18 @@
         }
       }
 
-      // 3. Determine Payment Status via Serverless Cashfree API or parameters
+      // 3. Determine Payment Status
       let isPaymentSuccess = false;
       let isPaymentCancelled = (statusParam === 'CANCELLED' || statusParam === 'FAILED' || paymentParam === 'cancelled');
 
-      if (!isPaymentCancelled) {
+      // If already recorded as PAID in DB from webhook
+      if (orderData && orderData.payment_status === 'PAID') {
+        isPaymentSuccess = true;
+        isPaymentCancelled = false;
+      } else if (paymentParam === 'success' || statusParam === 'SUCCESS') {
+        isPaymentSuccess = true;
+        isPaymentCancelled = false;
+      } else if (!isPaymentCancelled) {
         try {
           const verifyRes = await fetch('/api/verify-cashfree-order', {
             method: 'POST',
@@ -568,25 +575,20 @@
             body: JSON.stringify({ order_id: orderId })
           });
           const verifyData = await verifyRes.json();
-          if (verifyData && verifyData.payment_status === 'PAID') {
+          if (verifyData && (verifyData.success || verifyData.payment_status === 'PAID')) {
             isPaymentSuccess = true;
-          } else if (verifyData && (verifyData.payment_status === 'CANCELLED' || verifyData.payment_status === 'FAILED')) {
+            isPaymentCancelled = false;
+          } else {
             isPaymentCancelled = true;
           }
         } catch(e) {
           console.log('Verification API bypass:', e);
-          if (paymentParam === 'success' || statusParam === 'SUCCESS' || (orderData && orderData.payment_status === 'PAID')) {
+          if (orderData && orderData.payment_status === 'PAID') {
             isPaymentSuccess = true;
           } else {
             isPaymentCancelled = true;
           }
         }
-      }
-
-      // Fallback evaluation if no Cashfree serverless active
-      if (!isPaymentSuccess && (paymentParam === 'success' || statusParam === 'SUCCESS')) {
-        isPaymentSuccess = true;
-        isPaymentCancelled = false;
       }
 
       // 4. Render UI State
@@ -652,14 +654,12 @@
         paymentBadge.textContent = 'PAYMENT CANCELLED ✕';
         totalPaidVal.style.color = '#f87171';
 
-        // Update in Supabase & notify admin
+        // Update in Supabase (Uses 'FAILED' & 'CANCELLED' matching DB constraints)
         if (client) {
-          client.from('orders').update({ payment_status: 'CANCELLED', order_status: 'PAYMENT_CANCELLED' }).eq('order_number', orderId).catch(() => {});
+          client.from('orders').update({ payment_status: 'FAILED', order_status: 'CANCELLED' }).eq('order_number', orderId).catch(() => {});
         }
 
         // WhatsApp Direct Link
-        const phone = orderData?.customer_phone || '';
-        const name = orderData?.customer_name || 'Customer';
         const waHelpText = encodeURIComponent(`Hi Urban Rich Team, my payment for order #${orderId} was cancelled/incomplete. Please assist me.`);
 
         actionsContainer.innerHTML = `

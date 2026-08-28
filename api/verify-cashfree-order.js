@@ -1,6 +1,8 @@
-// Cashfree Order Verification API Serverless Handler
+// Cashfree Order Verification API Serverless Handler (Deduplicated & DB Constraint-Safe)
 const https = require('https');
 const webpush = require('web-push');
+
+const recentPushes = global.__recentPushes || (global.__recentPushes = new Map());
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -8,7 +10,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { order_id } = req.body || {};
+    const { order_id, is_explicit_cancel } = req.body || {};
     if (!order_id) {
       return res.status(400).json({ error: 'Order ID is required' });
     }
@@ -21,8 +23,17 @@ module.exports = async (req, res) => {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://vemlqojqluimqegryxug.supabase.co";
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlbWxxb2pxbHVpbXFlZ3J5eHVnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTk3Nzc3OSwiZXhwIjoyMTAxNTUzNzc5fQ.v-XqgNQuoir-nvrvEoIndsqu_G9WOEFJV";
 
-    // Helper: Push notification to Admin PWA
-    async function notifyAdmin(title, body, orderId, amount) {
+    // Helper: Push notification to Admin PWA with strict deduplication
+    async function notifyAdminOnce(eventType, title, body, orderId, amount) {
+      const pushKey = `${orderId}_${eventType}`;
+      const now = Date.now();
+
+      if (recentPushes.has(pushKey) && (now - recentPushes.get(pushKey) < 300000)) {
+        console.log(`[Push Deduplicated] Push for ${pushKey} skipped.`);
+        return;
+      }
+      recentPushes.set(pushKey, now);
+
       try {
         const vapidSubject = process.env.VAPID_SUBJECT || "mailto:support@urbanrichshop.com";
         const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BLAiHhe09D65RzlO2uYBZlskrAI7M3Xg4Bu5vHN4jLjlP6Ss5aEvViiTwOPgWLQqbAn27_ATJtaOmlreHSjdFTc";
@@ -51,7 +62,7 @@ module.exports = async (req, res) => {
       }
     }
 
-    // Helper: Update Supabase order
+    // Helper: Update Supabase order (Safe values: 'PAID' or 'FAILED', 'PLACED' or 'CANCELLED')
     async function updateOrderInDb(paymentStatus, orderStatus) {
       try {
         const dbRes = await fetch(`${supabaseUrl}/rest/v1/orders?order_number=eq.${order_id}`, {
@@ -63,8 +74,8 @@ module.exports = async (req, res) => {
             'Prefer': 'return=representation'
           },
           body: JSON.stringify({
-            payment_status: paymentStatus,
-            order_status: orderStatus,
+            payment_status: paymentStatus, // 'PAID' or 'FAILED'
+            order_status: orderStatus,     // 'PLACED' or 'CANCELLED'
             updated_at: new Date().toISOString()
           })
         });
@@ -76,7 +87,7 @@ module.exports = async (req, res) => {
       }
     }
 
-    // Fetch existing order info from DB first
+    // Fetch existing order info from DB
     let currentDbOrder = null;
     try {
       const fetchDb = await fetch(`${supabaseUrl}/rest/v1/orders?order_number=eq.${order_id}&select=*`, {
@@ -86,57 +97,97 @@ module.exports = async (req, res) => {
       if (rows && rows.length > 0) currentDbOrder = rows[0];
     } catch(e) {}
 
-    // If Cashfree credentials not configured, fallback gracefully
-    if (!appId || !secretKey) {
-      console.warn('Cashfree credentials missing in env, returning current order state');
+    const customerName = currentDbOrder?.customer_name || 'Customer';
+    const customerPhone = currentDbOrder?.customer_phone || '';
+    const orderAmount = currentDbOrder?.total_amount || 0;
+
+    // If order in DB is already PAID, return success immediately
+    if (currentDbOrder && currentDbOrder.payment_status === 'PAID') {
       return res.status(200).json({
-        success: currentDbOrder ? currentDbOrder.payment_status === 'PAID' : false,
+        success: true,
+        payment_status: 'PAID',
+        order_status: 'PLACED',
+        order: currentDbOrder
+      });
+    }
+
+    // If explicitly cancelled from frontend
+    if (is_explicit_cancel) {
+      const updatedOrder = await updateOrderInDb('FAILED', 'CANCELLED');
+      await notifyAdminOnce(
+        'PAYMENT_CANCELLED',
+        '⚠️ PAYMENT CANCELLED / NOT DONE',
+        `Order #${order_id} (₹${orderAmount}) attempt by ${customerName} (${customerPhone}) was cancelled / unpaid.`,
+        order_id,
+        orderAmount
+      );
+      return res.status(200).json({
+        success: false,
+        payment_status: 'FAILED',
+        order_status: 'CANCELLED',
+        order: updatedOrder || currentDbOrder,
+        message: 'Payment cancelled by user.'
+      });
+    }
+
+    // If Cashfree credentials missing, return database state
+    if (!appId || !secretKey) {
+      const isPaid = currentDbOrder?.payment_status === 'PAID';
+      return res.status(200).json({
+        success: isPaid,
         payment_status: currentDbOrder ? currentDbOrder.payment_status : 'PENDING',
         order: currentDbOrder
       });
     }
 
-    // Inquire Cashfree PG API
-    const options = {
-      hostname: host,
-      port: 443,
-      path: `/pg/orders/${encodeURIComponent(order_id)}`,
-      method: 'GET',
-      headers: {
-        'x-api-version': '2023-08-01',
-        'x-client-id': appId,
-        'x-client-secret': secretKey
-      }
-    };
-
-    const cfPromise = new Promise((resolve, reject) => {
-      const cfReq = https.request(options, (cfRes) => {
-        let data = '';
-        cfRes.on('data', chunk => { data += chunk; });
-        cfRes.on('end', () => {
-          try {
-            const parsed = JSON.parse(data);
-            resolve({ statusCode: cfRes.statusCode, data: parsed });
-          } catch(err) {
-            resolve({ statusCode: cfRes.statusCode, raw: data });
+    // Helper: Make HTTPS GET request to Cashfree
+    function cashfreeGet(path) {
+      return new Promise((resolve) => {
+        const reqOpts = {
+          hostname: host,
+          port: 443,
+          path: path,
+          method: 'GET',
+          headers: {
+            'x-api-version': '2023-08-01',
+            'x-client-id': appId,
+            'x-client-secret': secretKey
           }
+        };
+        const r = https.request(reqOpts, (resp) => {
+          let data = '';
+          resp.on('data', chunk => { data += chunk; });
+          resp.on('end', () => {
+            try {
+              resolve({ statusCode: resp.statusCode, data: JSON.parse(data) });
+            } catch(err) {
+              resolve({ statusCode: resp.statusCode, raw: data });
+            }
+          });
         });
+        r.on('error', (err) => resolve({ error: err }));
+        r.end();
       });
-      cfReq.on('error', reject);
-      cfReq.end();
-    });
+    }
 
-    const cfResult = await cfPromise;
-    const cfData = cfResult.data || {};
-    const cfStatus = cfData.order_status; // e.g. "PAID", "ACTIVE", "EXPIRED", "TERMINATED", "FAILED"
+    // Check order and payments on Cashfree
+    const orderRes = await cashfreeGet(`/pg/orders/${encodeURIComponent(order_id)}`);
+    const cfData = orderRes.data || {};
+    const cfStatus = (cfData.order_status || '').toUpperCase();
 
-    const customerName = currentDbOrder?.customer_name || cfData.customer_details?.customer_name || 'Customer';
-    const customerPhone = currentDbOrder?.customer_phone || cfData.customer_details?.customer_phone || '';
-    const orderAmount = currentDbOrder?.total_amount || cfData.order_amount || 0;
+    let hasSuccessfulPayment = (cfStatus === 'PAID');
 
-    if (cfStatus === 'PAID') {
+    if (!hasSuccessfulPayment) {
+      // Check payment attempts
+      const payRes = await cashfreeGet(`/pg/orders/${encodeURIComponent(order_id)}/payments`);
+      const payments = (payRes.data && Array.isArray(payRes.data)) ? payRes.data : [];
+      hasSuccessfulPayment = payments.some(p => (p.payment_status || '').toUpperCase() === 'SUCCESS');
+    }
+
+    if (hasSuccessfulPayment) {
       const updatedOrder = await updateOrderInDb('PAID', 'PLACED');
-      await notifyAdmin(
+      await notifyAdminOnce(
+        'PAYMENT_SUCCESS',
         '💰 PAYMENT SUCCESSFUL - NEW ORDER!',
         `Order #${order_id} for ₹${orderAmount} received from ${customerName} (Online Paid ✓)`,
         order_id,
@@ -151,8 +202,9 @@ module.exports = async (req, res) => {
       });
     } else {
       // Payment was cancelled / abandoned / not completed
-      const updatedOrder = await updateOrderInDb('CANCELLED', 'PAYMENT_CANCELLED');
-      await notifyAdmin(
+      const updatedOrder = await updateOrderInDb('FAILED', 'CANCELLED');
+      await notifyAdminOnce(
+        'PAYMENT_CANCELLED',
         '⚠️ PAYMENT CANCELLED / NOT DONE',
         `Order #${order_id} (₹${orderAmount}) attempt by ${customerName} (${customerPhone}) was cancelled / unpaid.`,
         order_id,
@@ -160,11 +212,11 @@ module.exports = async (req, res) => {
       );
       return res.status(200).json({
         success: false,
-        payment_status: 'CANCELLED',
-        order_status: 'PAYMENT_CANCELLED',
+        payment_status: 'FAILED',
+        order_status: 'CANCELLED',
         order: updatedOrder || currentDbOrder,
         cashfree: cfData,
-        message: 'Payment was cancelled or not completed.'
+        message: 'Payment was not completed or was cancelled.'
       });
     }
 
