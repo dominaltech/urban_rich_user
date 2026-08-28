@@ -197,9 +197,11 @@
       // Store in session for instantaneous receipt rendering
       sessionStorage.setItem('ur_last_order', JSON.stringify({ ...orderData, items: cart, payment_method: selectedPayMethod }));
 
-      if (window.urSupabase) {
+      const client = window.urSupabase || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.UR_CONFIG.SUPABASE_URL, window.UR_CONFIG.SUPABASE_ANON_KEY) : null);
+      if (client) {
         try {
-          const { data: insertedOrder, error } = await window.urSupabase.from('orders').insert([orderData]).select().single();
+          const { data: insertedOrder, error: orderErr } = await client.from('orders').insert([orderData]).select().single();
+          if (orderErr) console.error('Order insert error:', orderErr);
           if (insertedOrder && cart.length > 0) {
             const itemsToInsert = cart.map(item => ({
               order_id: insertedOrder.id,
@@ -210,10 +212,11 @@
               total_price: parseFloat(item.price || 0) * parseInt(item.quantity || 1),
               image_url: item.image || ''
             }));
-            await window.urSupabase.from('order_items').insert(itemsToInsert);
+            const { error: itemsErr } = await client.from('order_items').insert(itemsToInsert);
+            if (itemsErr) console.error('Order items insert error:', itemsErr);
           }
         } catch(e) {
-          console.error('Order creation error:', e);
+          console.error('Order creation exception:', e);
         }
       }
 
