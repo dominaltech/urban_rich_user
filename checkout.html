@@ -208,15 +208,54 @@
     renderCheckoutSummary();
   }
 
+  function resetCheckoutButton() {
+    const submitBtn = document.getElementById('submitOrderBtn');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<span>PROCEED TO SECURE ONLINE PAYMENT →</span>`;
+    }
+  }
+
+  function prefillCheckoutForm() {
+    try {
+      const raw = sessionStorage.getItem('ur_last_order');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.customer_name && !document.getElementById('custName').value) document.getElementById('custName').value = parsed.customer_name;
+        if (parsed.customer_email && !document.getElementById('custEmail').value) document.getElementById('custEmail').value = parsed.customer_email;
+        if (parsed.customer_phone && !document.getElementById('custPhone').value) document.getElementById('custPhone').value = parsed.customer_phone;
+        if (parsed.shipping_address) {
+          const addr = parsed.shipping_address;
+          if (typeof addr === 'object') {
+            if (addr.address && !document.getElementById('custAddress').value) document.getElementById('custAddress').value = addr.address;
+            if (addr.city && !document.getElementById('custCity').value) document.getElementById('custCity').value = addr.city;
+            if (addr.state && !document.getElementById('custState').value) document.getElementById('custState').value = addr.state;
+            if (addr.pincode && !document.getElementById('custPincode').value) document.getElementById('custPincode').value = addr.pincode;
+          }
+        }
+      }
+    } catch(e) {}
+  }
+
+  window.addEventListener('pageshow', function() {
+    resetCheckoutButton();
+    renderCheckoutSummary();
+  });
+
+  window.addEventListener('focus', function() {
+    resetCheckoutButton();
+  });
+
   document.addEventListener('DOMContentLoaded', function() {
     // If cart is empty, redirect back to cart
     if (window.UR_CART && window.UR_CART.get().length === 0) {
-      // Check if session order exists or return to cart
       window.location.href = 'cart.html';
       return;
     }
 
+    prefillCheckoutForm();
     renderCheckoutSummary();
+    resetCheckoutButton();
     document.addEventListener('urSupabaseReady', renderCheckoutSummary);
 
     document.getElementById('checkoutForm').addEventListener('submit', async function(e) {

@@ -34,26 +34,73 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
-    .btn-cancel-pay {
-      display: inline-block;
-      margin-top: 20px;
-      padding: 10px 20px;
-      background: transparent;
-      color: #666;
-      border: 1px solid #ccc;
+    .pay-btn-group {
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+      width: 100%;
+    }
+    .btn-pay-primary {
+      width: 100%;
+      padding: 14px 24px;
+      background: var(--black);
+      color: #fff;
+      border: none;
+      font-weight: 800;
+      font-size: 12.5px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
       border-radius: 4px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-pay-primary:hover {
+      background: #333;
+      transform: translateY(-1px);
+    }
+    .btn-pay-secondary {
+      width: 100%;
+      padding: 12px 24px;
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border-dark);
+      font-weight: 700;
       font-size: 12px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-pay-secondary:hover {
+      background: #f5f5f5;
+    }
+    .btn-cancel-pay {
+      background: transparent;
+      color: #777;
+      border: none;
+      font-size: 11.5px;
       font-weight: 700;
       letter-spacing: 0.5px;
       text-transform: uppercase;
       cursor: pointer;
-      text-decoration: none;
-      transition: all 0.2s ease;
+      text-decoration: underline;
+      margin-top: 6px;
     }
     .btn-cancel-pay:hover {
       color: #d90429;
-      border-color: #d90429;
-      background: #fff5f5;
     }
   </style>
 </head>
@@ -79,26 +126,34 @@
     <div class="spinner" id="paySpinner"></div>
     <div id="statusTxt" style="font-weight: 700; font-size: 14px; margin-top: 14px; color: #222;">Initializing order...</div>
     
-    <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 10px; align-items: center;">
-      <button id="retryBtn" style="display:none; padding: 12px 24px; background: var(--black); color: #fff; border: none; font-weight: 700; font-size: 12.5px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; border-radius: 4px;" onclick="startCashfreeCheckout()">RETRY CASHFREE CHECKOUT</button>
-      <button type="button" class="btn-cancel-pay" onclick="cancelAndReturn()">✕ CANCEL PAYMENT &amp; RETURN TO CART</button>
+    <div class="pay-btn-group" id="payButtonGroup">
+      <button id="retryBtn" class="btn-pay-primary" style="display:none;" onclick="startCashfreeCheckout()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        RESTART PAYMENT / RETRY NOW
+      </button>
+      <a href="cart.html" id="cartBtn" class="btn-pay-secondary" style="display:none;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        RETURN TO CART / BUY NOW
+      </a>
+      <button type="button" class="btn-cancel-pay" onclick="cancelAndReturn()">✕ CANCEL PAYMENT &amp; RETURN</button>
     </div>
   </div>
 </main>
 
 <script>
   let currentOrderId = '';
+  let autoTimeoutId = null;
 
   async function cancelAndReturn() {
     const urlParams = new URLSearchParams(window.location.search);
     const orderId = currentOrderId || urlParams.get('order_id');
     if (orderId) {
       try {
-        await fetch('/api/verify-cashfree-order', {
+        fetch('/api/verify-cashfree-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ order_id: orderId, is_explicit_cancel: true })
-        });
+        }).catch(() => {});
       } catch(e) {}
       window.location.href = `order-success.html?order_id=${encodeURIComponent(orderId)}&status=CANCELLED`;
     } else {
@@ -106,7 +161,27 @@
     }
   }
 
+  function showManualActionButtons(message) {
+    const spinner = document.getElementById('paySpinner');
+    const statusTxt = document.getElementById('statusTxt');
+    const retryBtn = document.getElementById('retryBtn');
+    const cartBtn = document.getElementById('cartBtn');
+
+    if (spinner) spinner.style.display = 'none';
+    if (statusTxt) statusTxt.textContent = message || 'You can retry payment or return to your cart:';
+    if (retryBtn) retryBtn.style.display = 'inline-flex';
+    if (cartBtn) cartBtn.style.display = 'inline-flex';
+  }
+
   async function startCashfreeCheckout() {
+    const spinner = document.getElementById('paySpinner');
+    const retryBtn = document.getElementById('retryBtn');
+    const cartBtn = document.getElementById('cartBtn');
+
+    if (spinner) spinner.style.display = 'block';
+    if (retryBtn) retryBtn.style.display = 'none';
+    if (cartBtn) cartBtn.style.display = 'none';
+
     const urlParams = new URLSearchParams(window.location.search);
     const orderId = urlParams.get('order_id') || 'UR-' + Math.floor(100000 + Math.random() * 900000);
     const amount = urlParams.get('amount') || '1.00';
@@ -114,7 +189,12 @@
     currentOrderId = orderId;
 
     document.getElementById('statusTxt').textContent = `Setting up order #${orderId} (₹${amount})...`;
-    document.getElementById('retryBtn').style.display = 'none';
+
+    // ⏱️ Auto-fallback timer: If gateway does not launch within 5s, present clear retry/cart buttons
+    if (autoTimeoutId) clearTimeout(autoTimeoutId);
+    autoTimeoutId = setTimeout(() => {
+      showManualActionButtons('Payment gateway taking longer than expected? You can restart or return to your bag.');
+    }, 5000);
 
     // Retrieve cached customer details from session
     let customer = {
@@ -170,15 +250,19 @@
         });
       } else {
         console.warn('Cashfree order response:', resData);
-        document.getElementById('statusTxt').textContent = 'Unable to launch gateway automatically.';
-        document.getElementById('retryBtn').style.display = 'block';
+        if (autoTimeoutId) clearTimeout(autoTimeoutId);
+        showManualActionButtons('Unable to open gateway automatically. Click below to retry:');
       }
     } catch (err) {
       console.error('Cashfree SDK Error:', err);
-      document.getElementById('statusTxt').textContent = 'Error connecting to payment gateway.';
-      document.getElementById('retryBtn').style.display = 'block';
+      if (autoTimeoutId) clearTimeout(autoTimeoutId);
+      showManualActionButtons('Connection interrupted. Click below to restart payment:');
     }
   }
+
+  window.addEventListener('pageshow', function() {
+    showManualActionButtons('Returned from payment gateway. You can restart or view your bag:');
+  });
 
   document.addEventListener('DOMContentLoaded', startCashfreeCheckout);
 </script>
