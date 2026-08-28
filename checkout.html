@@ -24,15 +24,28 @@
     .form-group label { display: block; font-weight: 700; font-size: 12px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; }
     .form-control { width: 100%; padding: 12px 14px; border: 1px solid var(--border-dark); background: var(--bg); font-family: inherit; font-size: 14px; border-radius: 2px; }
     .form-control:focus { outline: none; border-color: var(--black); }
-    .payment-option {
+    .payment-option-single {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 16px;
-      border: 1px solid var(--border-dark);
-      border-radius: 4px;
-      margin-bottom: 12px;
-      cursor: pointer;
+      gap: 14px;
+      padding: 18px;
+      border: 1.5px solid var(--black);
+      border-radius: 6px;
+      background: var(--bg-secondary);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      margin-bottom: 16px;
+    }
+    .pay-icon-badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #111;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
     }
   </style>
 </head>
@@ -89,33 +102,46 @@
         </div>
 
         <h2 style="font-family:var(--font-heading);font-size:1.4rem;font-weight:700;margin:32px 0 16px 0;text-transform:uppercase;">PAYMENT METHOD</h2>
-        <div class="payment-option" style="border-color:var(--black);background:var(--bg-secondary);" onclick="selectPayment('ONLINE', this)">
-          <input type="radio" name="payMethod" value="ONLINE" checked>
-          <div>
-            <div style="font-weight:700;font-size:14px;">Instant Online Payment (UPI / Cards / Netbanking)</div>
-            <div style="font-size:12px;color:var(--text-muted);">Secure Instant Payment via Cashfree Gateway</div>
-          </div>
-        </div>
-        <div class="payment-option" onclick="selectPayment('COD', this)">
-          <input type="radio" name="payMethod" value="COD">
-          <div>
-            <div style="font-weight:700;font-size:14px;">Cash on Delivery (COD)</div>
-            <div style="font-size:12px;color:var(--text-muted);">Pay upon package delivery</div>
+        <div class="payment-option-single">
+          <div class="pay-icon-badge">⚡</div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-weight:800;font-size:14.5px;">Instant Online Payment</span>
+              <span style="background:#10b981;color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:3px;letter-spacing:0.5px;">FAST & SECURE</span>
+            </div>
+            <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px;">
+              UPI (GPay / PhonePe / Paytm), Cards, Netbanking & Wallets via Cashfree
+            </div>
           </div>
         </div>
 
-        <button type="submit" id="submitOrderBtn" style="width:100%;margin-top:24px;padding:16px;background:var(--black);color:#fff;border:none;font-weight:700;font-size:14px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">PLACE ORDER NOW →</button>
+        <button type="submit" id="submitOrderBtn" style="width:100%;margin-top:20px;padding:16px;background:var(--black);color:#fff;border:none;font-weight:800;font-size:14px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border-radius:4px;transition:background 0.2s ease;">
+          PROCEED TO SECURE PAYMENT →
+        </button>
       </form>
     </div>
 
     <!-- ORDER SUMMARY COLUMN -->
     <div style="background:var(--bg-secondary);padding:28px;border-radius:4px;height:fit-content;border:1px solid var(--border);">
-      <h3 style="font-family:var(--font-heading);font-size:1.2rem;font-weight:700;margin-bottom:20px;text-transform:uppercase;">SUMMARY</h3>
+      <h3 style="font-family:var(--font-heading);font-size:1.2rem;font-weight:700;margin-bottom:14px;text-transform:uppercase;">SUMMARY</h3>
+      
+      <!-- RAKSHA BANDHAN CREATIVE MINIMAL COUPON BANNER -->
+      <div class="rakhi-coupon-banner" id="rakhiCheckoutBanner" onclick="toggleRakhiCheckout()">
+        <div class="rakhi-banner-left">
+          <span class="rakhi-badge">✨ RAKSHA BANDHAN SPECIAL</span>
+          <div class="rakhi-title">Get <strong>5% OFF</strong> on your order!</div>
+          <div class="rakhi-sub">Use coupon code <span class="rakhi-code">RAKHI5</span></div>
+        </div>
+        <button type="button" class="rakhi-apply-btn" id="rakhiCheckoutBtn" onclick="event.stopPropagation(); toggleRakhiCheckout();">
+          APPLY
+        </button>
+      </div>
+
       <div id="checkoutSummaryList"></div>
       <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
       <div style="display:flex;justify-content:space-between;font-weight:700;font-size:1.2rem;">
         <span>Total Payable</span>
-        <span id="chkTotal">₹0</span>
+        <span id="chkTotal">₹0.00</span>
       </div>
     </div>
   </div>
@@ -131,39 +157,65 @@
 </footer>
 
 <script>
-  let selectedPayMethod = 'ONLINE';
-
-  function selectPayment(method, el) {
-    selectedPayMethod = method;
-    document.querySelectorAll('.payment-option').forEach(opt => {
-      opt.style.borderColor = 'var(--border-dark)';
-      opt.style.background = 'var(--bg)';
-    });
-    el.style.borderColor = 'var(--black)';
-    el.style.background = 'var(--bg-secondary)';
-    el.querySelector('input').checked = true;
-  }
-
   function renderCheckoutSummary() {
     const totals = window.UR_CART.calculateTotals();
     document.getElementById('chkTotal').textContent = `₹${totals.total.toFixed(2)}`;
 
+    const submitBtn = document.getElementById('submitOrderBtn');
+    if (submitBtn && !submitBtn.disabled) {
+      submitBtn.textContent = `PROCEED TO SECURE PAYMENT (₹${totals.total.toFixed(2)}) →`;
+    }
+
+    // Sync banner UI
+    const rakhiBanner = document.getElementById('rakhiCheckoutBanner');
+    const rakhiBtn = document.getElementById('rakhiCheckoutBtn');
+    if (totals.discount > 0 && totals.couponCode === 'RAKHI5') {
+      if (rakhiBanner) rakhiBanner.classList.add('applied');
+      if (rakhiBtn) rakhiBtn.textContent = '✓ 5% APPLIED';
+    } else {
+      if (rakhiBanner) rakhiBanner.classList.remove('applied');
+      if (rakhiBtn) rakhiBtn.textContent = 'APPLY';
+    }
+
     const list = document.getElementById('checkoutSummaryList');
     const cart = window.UR_CART.get();
+    let discountRowHtml = '';
+    if (totals.discount > 0) {
+      discountRowHtml = `
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:8px;color:#10b981;font-weight:700;">
+          <span>Raksha Bandhan Discount (5% OFF)</span>
+          <span>-₹${totals.discount.toFixed(2)}</span>
+        </div>
+      `;
+    }
+
     list.innerHTML = cart.map(item => `
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;">
         <span>${item.name} (${item.size}) x${item.quantity}</span>
-        <span style="font-weight:700;">₹${item.price * item.quantity}</span>
+        <span style="font-weight:700;">₹${(item.price * item.quantity).toFixed(2)}</span>
       </div>
-    `).join('') + `
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:12px;color:var(--text-muted);">
+    `).join('') + discountRowHtml + `
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:10px;color:var(--text-muted);">
         <span>Shipping Fee</span>
         <span>${totals.shippingFee === 0 ? 'FREE (₹0)' : '₹' + totals.shippingFee.toFixed(2)}</span>
       </div>
     `;
   }
 
+  function toggleRakhiCheckout() {
+    if (!window.UR_COUPON) return;
+    window.UR_COUPON.toggle('RAKHI5');
+    renderCheckoutSummary();
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
+    // If cart is empty, redirect back to cart
+    if (window.UR_CART && window.UR_CART.get().length === 0) {
+      // Check if session order exists or return to cart
+      window.location.href = 'cart.html';
+      return;
+    }
+
     renderCheckoutSummary();
     document.addEventListener('urSupabaseReady', renderCheckoutSummary);
 
@@ -171,31 +223,32 @@
       e.preventDefault();
       const submitBtn = document.getElementById('submitOrderBtn');
       submitBtn.disabled = true;
-      submitBtn.textContent = 'PROCESSING ORDER...';
+      submitBtn.textContent = 'INITIALIZING SECURE CHECKOUT...';
 
       const totals = window.UR_CART.calculateTotals();
       const orderNum = 'UR-' + Math.floor(100000 + Math.random() * 900000);
       const cart = window.UR_CART.get();
       const orderData = {
         order_number: orderNum,
-        customer_name: document.getElementById('custName').value,
-        customer_email: document.getElementById('custEmail').value,
-        customer_phone: document.getElementById('custPhone').value,
+        customer_name: document.getElementById('custName').value.trim(),
+        customer_email: document.getElementById('custEmail').value.trim(),
+        customer_phone: document.getElementById('custPhone').value.trim(),
         shipping_address: {
-          address: document.getElementById('custAddress').value,
-          city: document.getElementById('custCity').value,
-          state: document.getElementById('custState').value,
-          pincode: document.getElementById('custPincode').value
+          address: document.getElementById('custAddress').value.trim(),
+          city: document.getElementById('custCity').value.trim(),
+          state: document.getElementById('custState').value.trim(),
+          pincode: document.getElementById('custPincode').value.trim()
         },
         subtotal: totals.subtotal,
+        discount_amount: totals.discount || 0,
         shipping_fee: totals.shippingFee,
         total_amount: totals.total,
-        payment_status: selectedPayMethod === 'ONLINE' ? 'PENDING' : 'PAID',
+        payment_status: 'PENDING',
         order_status: 'PLACED'
       };
 
-      // Store in session for instantaneous receipt rendering
-      sessionStorage.setItem('ur_last_order', JSON.stringify({ ...orderData, items: cart, payment_method: selectedPayMethod }));
+      // Store in session for receipt rendering
+      sessionStorage.setItem('ur_last_order', JSON.stringify({ ...orderData, items: cart, payment_method: 'ONLINE' }));
 
       const client = window.urSupabase || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.UR_CONFIG.SUPABASE_URL, window.UR_CONFIG.SUPABASE_ANON_KEY) : null);
       if (client) {
@@ -215,34 +268,13 @@
             const { error: itemsErr } = await client.from('order_items').insert(itemsToInsert);
             if (itemsErr) console.error('Order items insert error:', itemsErr);
           }
-        } catch(e) {
-          console.error('Order creation exception:', e);
-        }
-      }
-
-      if (selectedPayMethod === 'ONLINE') {
-        // For Online payments, push notification is sent AFTER payment succeeds on order-success.html
-        window.location.href = `payment.html?order_id=${orderNum}&amount=${totals.total}`;
-      } else {
-        // For COD, the order is complete now -> dispatch notification to admin immediately
-        try {
-          fetch('/api/send-push', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title: '🚨 NEW COD ORDER PLACED!',
-              message: `Order #${orderNum} placed for ₹${totals.total} by ${orderData.customer_name} (Cash on Delivery)`,
-              order_id: orderNum,
-              amount: totals.total
-            })
-          }).catch(err => console.log('Push notification background bypass:', err));
         } catch(err) {
-          console.error('Push error:', err);
+          console.error('Order creation exception:', err);
         }
-
-        window.UR_CART.set([]);
-        window.location.href = `order-success.html?order_id=${orderNum}&method=cod`;
       }
+
+      // Do NOT clear cart yet! Cart is preserved until payment is confirmed on order-success.html
+      window.location.href = `payment.html?order_id=${orderNum}&amount=${totals.total}`;
     });
   });
 </script>

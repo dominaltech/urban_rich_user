@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Confirmation & Receipt | Urban Rich</title>
-  <meta name="description" content="Thank you for your order at Urban Rich. Your order has been placed and payment confirmed.">
+  <title>Order Status — Urban Rich</title>
+  <meta name="description" content="Urban Rich Order Confirmation & Payment Status">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="urbanlogo.jpeg" type="image/jpeg">
   <link rel="apple-touch-icon" href="urbanlogo.jpeg">
@@ -32,23 +32,25 @@
       pointer-events: none;
       z-index: 10;
     }
-    .order-success-page {
+    .order-status-page {
       max-width: 720px;
       margin: 40px auto 80px;
       padding: 0 20px;
       position: relative;
       z-index: 20;
     }
-    .success-hero {
+    .status-hero {
       text-align: center;
       margin-bottom: 32px;
-      animation: heroAppear 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: heroAppear 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     @keyframes heroAppear {
-      from { opacity: 0; transform: translateY(20px); }
+      from { opacity: 0; transform: translateY(16px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    .checkmark-circle {
+    
+    /* SUCCESS ICON */
+    .icon-circle-success {
       width: 76px;
       height: 76px;
       background: linear-gradient(135deg, #10b981, #059669);
@@ -64,28 +66,50 @@
       0%, 100% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.4); transform: scale(1); }
       50% { box-shadow: 0 0 45px rgba(16, 185, 129, 0.7); transform: scale(1.04); }
     }
-    .checkmark-circle svg {
+    .icon-circle-success svg {
       width: 40px;
       height: 40px;
       stroke: #ffffff;
-      stroke-dasharray: 100;
-      stroke-dashoffset: 100;
-      animation: drawCheck 0.8s 0.2s cubic-bezier(0.65, 0, 0.45, 1) forwards;
     }
-    @keyframes drawCheck {
-      to { stroke-dashoffset: 0; }
+
+    /* CANCELLED / FAILED ICON */
+    .icon-circle-cancelled {
+      width: 76px;
+      height: 76px;
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      box-shadow: 0 0 35px rgba(239, 68, 68, 0.45);
+      animation: pulseCancel 2s infinite ease-in-out;
     }
+    @keyframes pulseCancel {
+      0%, 100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); transform: scale(1); }
+      50% { box-shadow: 0 0 40px rgba(239, 68, 68, 0.6); transform: scale(1.03); }
+    }
+    .icon-circle-cancelled svg {
+      width: 38px;
+      height: 38px;
+      stroke: #ffffff;
+    }
+
     .hero-title {
       font-family: var(--font-heading);
-      font-size: clamp(26px, 4.5vw, 36px);
+      font-size: clamp(24px, 4.5vw, 34px);
       font-weight: 800;
       letter-spacing: -0.5px;
       margin-bottom: 8px;
     }
     .hero-subtitle {
       font-size: 14px;
-      color: rgba(255, 255, 255, 0.65);
+      color: rgba(255, 255, 255, 0.7);
       margin-bottom: 20px;
+      max-width: 540px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.5;
     }
     .receipt-card {
       background: #15151a;
@@ -130,15 +154,22 @@
     .receipt-tag {
       display: inline-block;
       padding: 4px 10px;
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid #10b981;
-      color: #34d399;
       font-size: 11px;
       font-weight: 800;
       letter-spacing: 1px;
       border-radius: 4px;
       text-transform: uppercase;
       margin-bottom: 6px;
+    }
+    .tag-paid {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid #10b981;
+      color: #34d399;
+    }
+    .tag-cancelled {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid #ef4444;
+      color: #f87171;
     }
     .receipt-section-title {
       font-size: 11px;
@@ -233,14 +264,14 @@
       margin-top: 32px;
       flex-wrap: wrap;
     }
-    .btn-receipt {
+    .btn-action {
       flex: 1;
-      min-width: 180px;
+      min-width: 170px;
       padding: 14px 20px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 1px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
       text-transform: uppercase;
       text-align: center;
       text-decoration: none;
@@ -251,34 +282,41 @@
       gap: 8px;
       transition: all 0.2s ease;
       box-sizing: border-box;
+      border: none;
     }
-    .btn-print {
-      background: #22222a;
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+    .btn-retry {
+      background: #d4af37;
+      color: #000000;
     }
-    .btn-print:hover {
-      background: #2c2c36;
-      border-color: #fff;
+    .btn-retry:hover {
+      background: #f3cf65;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.25);
     }
-    .btn-orders {
+    .btn-primary {
       background: #ffffff;
       color: #0d0d10;
-      border: none;
       box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15);
     }
-    .btn-orders:hover {
+    .btn-primary:hover {
       background: #e5e5e5;
       transform: translateY(-1px);
     }
-    .btn-shop {
-      background: transparent;
-      color: rgba(255, 255, 255, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+    .btn-secondary {
+      background: #22222a;
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
-    .btn-shop:hover {
-      border-color: #fff;
-      color: #fff;
+    .btn-secondary:hover {
+      background: #2c2c36;
+      border-color: #ffffff;
+    }
+    .btn-whatsapp-support {
+      background: #25d366;
+      color: #ffffff;
+    }
+    .btn-whatsapp-support:hover {
+      background: #20ba5a;
     }
 
     @media print {
@@ -286,10 +324,10 @@
         background: #ffffff !important;
         color: #000000 !important;
       }
-      #confettiCanvas, .site-header, .site-footer, .action-buttons, .checkmark-circle, .hero-title, .hero-subtitle {
+      #confettiCanvas, .site-header, .action-buttons, .status-hero {
         display: none !important;
       }
-      .order-success-page {
+      .order-status-page {
         margin: 0 !important;
         padding: 0 !important;
         max-width: 100% !important;
@@ -330,24 +368,26 @@
         <img src="images/logo.jpg" alt="Urban Rich Logo" class="logo-img" style="height:38px;width:auto;object-fit:contain;" />
         <span class="logo-wordmark">Urban Rich</span>
       </a>
-      <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);">✓ ORDER CONFIRMED</div>
+      <div id="headerStatusText" style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);">
+        🔒 PAYMENT STATUS
+      </div>
     </nav>
   </header>
 
-  <main class="order-success-page">
-    <div class="success-hero">
-      <div class="checkmark-circle">
+  <main class="order-status-page">
+    <div class="status-hero">
+      <div id="heroIconContainer" class="icon-circle-success">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
       </div>
-      <h1 class="hero-title" id="heroStatusTitle">Payment & Order Confirmed! 🎉</h1>
-      <p class="hero-subtitle">
-        Thank you for choosing Urban Rich. Your order has been placed and payment successfully recorded.
+      <h1 class="hero-title" id="heroStatusTitle">Verifying Payment Status...</h1>
+      <p class="hero-subtitle" id="heroStatusSubtitle">
+        Please wait while we securely confirm your payment with the gateway.
       </p>
     </div>
 
-    <!-- DIGITAL ORDER RECEIPT / TAX INVOICE -->
+    <!-- DIGITAL ORDER RECEIPT / SUMMARY CARD -->
     <div class="receipt-card" id="receiptCard">
       <div class="receipt-head">
         <div class="receipt-brand">
@@ -358,7 +398,7 @@
           </div>
         </div>
         <div class="receipt-meta">
-          <div class="receipt-tag" id="paymentBadge">PAID ONLINE ✓</div>
+          <div class="receipt-tag tag-paid" id="paymentBadge">CHECKING STATUS...</div>
           <div style="font-size: 13px; font-weight: 700; color: #fff;">Order #<span id="orderIdText">UR-000000</span></div>
           <div style="font-size: 11.5px; color: rgba(255,255,255,0.5);" id="orderDateText">--/--/----</div>
         </div>
@@ -402,167 +442,32 @@
           <span>Items Subtotal</span>
           <span id="subtotalVal">₹0.00</span>
         </div>
+        <div class="bill-row" id="discountReceiptRow" style="display:none; color: #34d399; font-weight: 700;">
+          <span>Raksha Bandhan Discount (5% OFF)</span>
+          <span id="discountVal">-₹0.00</span>
+        </div>
         <div class="bill-row">
           <span>Delivery / Shipping Charges</span>
           <span id="shippingVal">₹0.00</span>
         </div>
         <div class="bill-row total">
-          <span>Total Paid</span>
+          <span id="totalLabel">Total Amount</span>
           <span id="totalPaidVal" style="color: #34d399;">₹0.00</span>
         </div>
       </div>
 
-      <div class="action-buttons">
-        <button class="btn-receipt btn-print" onclick="window.print()">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          PRINT RECEIPT
-        </button>
-        <a href="my-orders.html" class="btn-receipt btn-orders">VIEW MY ORDERS</a>
-        <a href="shop.html" class="btn-receipt btn-shop">CONTINUE SHOPPING</a>
+      <div class="action-buttons" id="actionButtonsContainer">
+        <!-- Injected via JavaScript based on status -->
       </div>
     </div>
   </main>
 
-  <!-- SCRIPT: ORDER VERIFICATION, PUSH DISPATCH, & RECEIPT RENDERING -->
   <script>
-    async function loadOrderAndConfirmPayment() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const orderId = urlParams.get('order_id') || 'UR-' + Math.floor(100000 + Math.random() * 900000);
-      const method = urlParams.get('method');
-      const isPaymentSuccess = urlParams.get('payment') === 'success' || urlParams.get('status') === 'SUCCESS';
+    let isConfettiActive = false;
 
-      document.getElementById('orderIdText').textContent = orderId;
-      document.getElementById('orderDateText').textContent = new Date().toLocaleString('en-IN', {
-        dateStyle: 'medium',
-        timeStyle: 'short'
-      });
-
-      // Clear the cart upon reaching success page
-      if (window.UR_CART) {
-        window.UR_CART.set([]);
-      }
-
-      // Try loading cached order session
-      let cachedOrder = null;
-      try {
-        const raw = sessionStorage.getItem('ur_last_order');
-        if (raw) cachedOrder = JSON.parse(raw);
-      } catch(e) {}
-
-      let orderData = cachedOrder;
-
-      // Check / Update in Supabase
-      const client = window.urSupabase || (window.supabase && window.supabase.createClient(window.UR_CONFIG.SUPABASE_URL, window.UR_CONFIG.SUPABASE_ANON_KEY));
-      if (client) {
-        try {
-          // If online payment completed, update payment_status to PAID
-          if (isPaymentSuccess || method !== 'cod') {
-            await client
-              .from('orders')
-              .update({ payment_status: 'PAID', updated_at: new Date() })
-              .eq('order_number', orderId);
-          }
-
-          // Fetch full row and items
-          const { data: dbOrder } = await client
-            .from('orders')
-            .select('*, order_items(*)')
-            .eq('order_number', orderId)
-            .maybeSingle();
-
-          if (dbOrder) {
-            orderData = dbOrder;
-            if (dbOrder.order_items && dbOrder.order_items.length > 0) {
-              orderData.items = dbOrder.order_items;
-            }
-          }
-        } catch(e) {
-          console.error('Supabase receipt fetch exception:', e);
-        }
-      }
-
-      const isCod = method === 'cod' || (orderData && (orderData.payment_status === 'COD' || orderData.payment_method === 'COD'));
-
-      if (isCod) {
-        document.getElementById('heroStatusTitle').textContent = 'Order Placed (Cash on Delivery)! 📦';
-        document.getElementById('paymentBadge').textContent = 'CASH ON DELIVERY';
-        document.getElementById('paymentBadge').style.borderColor = '#eab308';
-        document.getElementById('paymentBadge').style.color = '#fde047';
-        document.getElementById('paymentBadge').style.background = 'rgba(234, 179, 8, 0.15)';
-        document.getElementById('payMethodText').textContent = 'Cash on Delivery (Pay on Arrival)';
-      } else {
-        document.getElementById('heroStatusTitle').textContent = 'Payment & Order Confirmed! 🎉';
-        document.getElementById('paymentBadge').textContent = 'PAID ONLINE ✓';
-        document.getElementById('payMethodText').textContent = 'Instant Online Payment (Cashfree Gateway)';
-      }
-
-      // Render customer info
-      if (orderData) {
-        document.getElementById('custNameText').textContent = orderData.customer_name || 'Customer';
-        document.getElementById('custPhoneText').textContent = orderData.customer_phone || '-';
-        if (orderData.shipping_address) {
-          const addr = orderData.shipping_address;
-          if (typeof addr === 'object') {
-            document.getElementById('custAddressText').textContent = `${addr.address || ''}, ${addr.city || ''} ${addr.state || ''} - ${addr.pincode || ''}`;
-          } else {
-            document.getElementById('custAddressText').textContent = addr;
-          }
-        }
-        document.getElementById('subtotalVal').textContent = `₹${parseFloat(orderData.subtotal || 0).toFixed(2)}`;
-        document.getElementById('shippingVal').textContent = parseFloat(orderData.shipping_fee || 0) === 0 ? 'FREE (₹0.00)' : `₹${parseFloat(orderData.shipping_fee || 0).toFixed(2)}`;
-        document.getElementById('totalPaidVal').textContent = `₹${parseFloat(orderData.total_amount || 0).toFixed(2)}`;
-
-        // Render itemized list
-        const items = orderData.items || [];
-        if (items.length > 0) {
-          document.getElementById('receiptItemsBody').innerHTML = items.map(item => `
-            <tr>
-              <td>
-                <div class="product-cell">
-                  <img src="${item.image || item.image_url || 'images/logo.jpg'}" alt="${item.name || item.product_name}" class="product-thumb" />
-                  <div>
-                    <div style="font-weight: 700; color: #fff;">${item.name || item.product_name}</div>
-                    <div style="font-size: 11.5px; color: rgba(255,255,255,0.5);">₹${item.price || item.unit_price} each</div>
-                  </div>
-                </div>
-              </td>
-              <td style="text-align: center; font-weight: 700; color: #aaa;">${item.size || item.variant_size || 'M'}</td>
-              <td style="text-align: center; font-weight: 700;">${item.quantity || 1}</td>
-              <td style="text-align: right; font-weight: 700; color: #fff;">₹${((item.price || item.unit_price || 0) * (item.quantity || 1)).toFixed(2)}</td>
-            </tr>
-          `).join('');
-        }
-      }
-
-      // 🚨 DISPATCH PUSH NOTIFICATION TO ADMIN UPON CONFIRMED SUCCESS (Guaranteed Single Execution)
-      const pushKey = 'ur_notified_push_' + orderId;
-      if (!sessionStorage.getItem(pushKey)) {
-        sessionStorage.setItem(pushKey, 'true');
-        const amount = orderData ? orderData.total_amount : '0';
-        const customer = orderData ? orderData.customer_name : 'Customer';
-
-        try {
-          fetch('/api/send-push', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title: isCod ? '🚨 NEW COD ORDER PLACED!' : '💰 PAYMENT SUCCESSFUL - NEW ORDER!',
-              message: `Order #${orderId} for ₹${amount} received from ${customer} (${isCod ? 'Cash on Delivery' : 'Online Paid'})`,
-              order_id: orderId,
-              amount: amount
-            })
-          }).catch(err => console.log('Push dispatch bypass:', err));
-        } catch(e) {
-          console.error('Push notification dispatch error:', e);
-        }
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', loadOrderAndConfirmPayment);
-    document.addEventListener('urSupabaseReady', loadOrderAndConfirmPayment);
-
-    // Confetti Animation Effect
-    (function () {
+    function renderConfetti() {
+      if (isConfettiActive) return;
+      isConfettiActive = true;
       const canvas = document.getElementById('confettiCanvas');
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
@@ -576,7 +481,7 @@
 
       const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#ffffff', '#eab308'];
       const particles = [];
-      for (let i = 0; i < 110; i++) {
+      for (let i = 0; i < 100; i++) {
         particles.push({
           x: Math.random() * width,
           y: Math.random() * height - height,
@@ -609,7 +514,219 @@
         requestAnimationFrame(render);
       }
       render();
-    })();
+    }
+
+    async function evaluateOrderStatus() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get('order_id') || 'UR-' + Math.floor(100000 + Math.random() * 900000);
+      const statusParam = (urlParams.get('status') || '').toUpperCase();
+      const paymentParam = (urlParams.get('payment') || '').toLowerCase();
+
+      document.getElementById('orderIdText').textContent = orderId;
+      document.getElementById('orderDateText').textContent = new Date().toLocaleString('en-IN', {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      });
+
+      // 1. Try to load cached order session
+      let orderData = null;
+      try {
+        const raw = sessionStorage.getItem('ur_last_order');
+        if (raw) orderData = JSON.parse(raw);
+      } catch(e) {}
+
+      // 2. Fetch order data from Supabase
+      const client = window.urSupabase || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.UR_CONFIG.SUPABASE_URL, window.UR_CONFIG.SUPABASE_ANON_KEY) : null);
+      if (client) {
+        try {
+          const { data: dbOrder } = await client
+            .from('orders')
+            .select('*, order_items(*)')
+            .eq('order_number', orderId)
+            .maybeSingle();
+
+          if (dbOrder) {
+            orderData = dbOrder;
+            if (dbOrder.order_items && dbOrder.order_items.length > 0) {
+              orderData.items = dbOrder.order_items;
+            }
+          }
+        } catch(e) {
+          console.error('Supabase fetch error:', e);
+        }
+      }
+
+      // 3. Determine Payment Status via Serverless Cashfree API or parameters
+      let isPaymentSuccess = false;
+      let isPaymentCancelled = (statusParam === 'CANCELLED' || statusParam === 'FAILED' || paymentParam === 'cancelled');
+
+      if (!isPaymentCancelled) {
+        try {
+          const verifyRes = await fetch('/api/verify-cashfree-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: orderId })
+          });
+          const verifyData = await verifyRes.json();
+          if (verifyData && verifyData.payment_status === 'PAID') {
+            isPaymentSuccess = true;
+          } else if (verifyData && (verifyData.payment_status === 'CANCELLED' || verifyData.payment_status === 'FAILED')) {
+            isPaymentCancelled = true;
+          }
+        } catch(e) {
+          console.log('Verification API bypass:', e);
+          if (paymentParam === 'success' || statusParam === 'SUCCESS' || (orderData && orderData.payment_status === 'PAID')) {
+            isPaymentSuccess = true;
+          } else {
+            isPaymentCancelled = true;
+          }
+        }
+      }
+
+      // Fallback evaluation if no Cashfree serverless active
+      if (!isPaymentSuccess && (paymentParam === 'success' || statusParam === 'SUCCESS')) {
+        isPaymentSuccess = true;
+        isPaymentCancelled = false;
+      }
+
+      // 4. Render UI State
+      const heroIcon = document.getElementById('heroIconContainer');
+      const heroTitle = document.getElementById('heroStatusTitle');
+      const heroSubtitle = document.getElementById('heroStatusSubtitle');
+      const paymentBadge = document.getElementById('paymentBadge');
+      const headerStatus = document.getElementById('headerStatusText');
+      const totalPaidVal = document.getElementById('totalPaidVal');
+      const actionsContainer = document.getElementById('actionButtonsContainer');
+
+      if (isPaymentSuccess) {
+        // ========== PAYMENT SUCCESS STATE ==========
+        heroIcon.className = 'icon-circle-success';
+        heroIcon.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        `;
+        heroTitle.textContent = 'Payment & Order Confirmed! 🎉';
+        heroSubtitle.textContent = 'Thank you for choosing Urban Rich. Your order has been placed and payment successfully recorded.';
+        headerStatus.textContent = '✓ ORDER CONFIRMED';
+        
+        paymentBadge.className = 'receipt-tag tag-paid';
+        paymentBadge.textContent = 'PAID ONLINE ✓';
+        totalPaidVal.style.color = '#34d399';
+
+        // Clear cart upon confirmed success
+        if (window.UR_CART) {
+          window.UR_CART.set([]);
+        }
+
+        actionsContainer.innerHTML = `
+          <button class="btn-action btn-secondary" onclick="window.print()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            PRINT RECEIPT
+          </button>
+          <a href="my-orders.html" class="btn-action btn-primary">VIEW MY ORDERS</a>
+          <a href="shop.html" class="btn-action btn-secondary">CONTINUE SHOPPING</a>
+        `;
+
+        renderConfetti();
+
+        // Update in Supabase
+        if (client) {
+          client.from('orders').update({ payment_status: 'PAID', order_status: 'PLACED' }).eq('order_number', orderId).catch(() => {});
+        }
+
+      } else {
+        // ========== PAYMENT CANCELLED / INCOMPLETE STATE ==========
+        heroIcon.className = 'icon-circle-cancelled';
+        heroIcon.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        `;
+        heroTitle.textContent = 'Payment Cancelled / Incomplete ⚠️';
+        heroSubtitle.textContent = 'Your payment was not completed or was cancelled. No money was deducted from your account. Your cart items have been saved.';
+        headerStatus.textContent = '✕ PAYMENT CANCELLED';
+
+        paymentBadge.className = 'receipt-tag tag-cancelled';
+        paymentBadge.textContent = 'PAYMENT CANCELLED ✕';
+        totalPaidVal.style.color = '#f87171';
+
+        // Update in Supabase & notify admin
+        if (client) {
+          client.from('orders').update({ payment_status: 'CANCELLED', order_status: 'PAYMENT_CANCELLED' }).eq('order_number', orderId).catch(() => {});
+        }
+
+        // WhatsApp Direct Link
+        const phone = orderData?.customer_phone || '';
+        const name = orderData?.customer_name || 'Customer';
+        const waHelpText = encodeURIComponent(`Hi Urban Rich Team, my payment for order #${orderId} was cancelled/incomplete. Please assist me.`);
+
+        actionsContainer.innerHTML = `
+          <a href="checkout.html" class="btn-action btn-retry">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            RE-PLACE ORDER / RETRY PAYMENT
+          </a>
+          <a href="cart.html" class="btn-action btn-secondary">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            GO TO CART
+          </a>
+          <a href="https://wa.me/919876543210?text=${waHelpText}" target="_blank" class="btn-action btn-whatsapp-support">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.04 14.69 2 12.04 2ZM12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.16 12.04 20.16C10.67 20.16 9.33 19.8 8.16 19.11L7.88 18.94L4.76 19.76L5.59 16.71L5.4 16.41C4.64 15.2 4.24 13.58 4.24 11.92C4.24 7.38 7.94 3.67 12.05 3.67Z"/></svg>
+            NEED HELP? CHAT ON WHATSAPP
+          </a>
+        `;
+      }
+
+      // Render Order Receipt Items & Details
+      if (orderData) {
+        document.getElementById('custNameText').textContent = orderData.customer_name || 'Customer';
+        document.getElementById('custPhoneText').textContent = orderData.customer_phone || '-';
+        if (orderData.shipping_address) {
+          const addr = orderData.shipping_address;
+          if (typeof addr === 'object') {
+            document.getElementById('custAddressText').textContent = `${addr.address || ''}, ${addr.city || ''} ${addr.state || ''} - ${addr.pincode || ''}`;
+          } else {
+            document.getElementById('custAddressText').textContent = addr;
+          }
+        }
+        document.getElementById('subtotalVal').textContent = `₹${parseFloat(orderData.subtotal || 0).toFixed(2)}`;
+        
+        const disc = parseFloat(orderData.discount_amount || 0);
+        const discRow = document.getElementById('discountReceiptRow');
+        const discVal = document.getElementById('discountVal');
+        if (disc > 0 && discRow && discVal) {
+          discRow.style.display = 'flex';
+          discVal.textContent = `-₹${disc.toFixed(2)}`;
+        }
+
+        document.getElementById('shippingVal').textContent = parseFloat(orderData.shipping_fee || 0) === 0 ? 'FREE (₹0.00)' : `₹${parseFloat(orderData.shipping_fee || 0).toFixed(2)}`;
+        document.getElementById('totalPaidVal').textContent = `₹${parseFloat(orderData.total_amount || 0).toFixed(2)}`;
+
+        const items = orderData.items || [];
+        if (items.length > 0) {
+          document.getElementById('receiptItemsBody').innerHTML = items.map(item => `
+            <tr>
+              <td>
+                <div class="product-cell">
+                  <img src="${item.image || item.image_url || 'images/logo.jpg'}" alt="${item.name || item.product_name}" class="product-thumb" onerror="this.src='images/logo.jpg'" />
+                  <div>
+                    <div style="font-weight: 700; color: #fff;">${item.name || item.product_name}</div>
+                    <div style="font-size: 11.5px; color: rgba(255,255,255,0.5);">₹${parseFloat(item.price || item.unit_price || 0).toFixed(2)} each</div>
+                  </div>
+                </div>
+              </td>
+              <td style="text-align: center; font-weight: 700; color: #aaa;">${item.size || item.variant_size || 'M'}</td>
+              <td style="text-align: center; font-weight: 700;">${item.quantity || 1}</td>
+              <td style="text-align: right; font-weight: 700; color: #fff;">₹${((parseFloat(item.price || item.unit_price || 0)) * (parseInt(item.quantity || 1))).toFixed(2)}</td>
+            </tr>
+          `).join('');
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', evaluateOrderStatus);
+    document.addEventListener('urSupabaseReady', evaluateOrderStatus);
   </script>
 </body>
 </html>

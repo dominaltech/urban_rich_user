@@ -200,8 +200,33 @@
 
       let isFreeShipping = isOnlyTestProduct || (freeThreshold > 0 && subtotal >= freeThreshold);
       let shippingFee = isFreeShipping ? 0 : (subtotal > 0 ? deliveryFee : 0);
-      let total = subtotal + shippingFee;
-      return { subtotal, shippingFee, total, isOnlyTestProduct, deliveryFee, freeThreshold, isFreeShipping };
+
+      // Coupon discount calculation
+      let coupon = window.UR_COUPON ? window.UR_COUPON.get() : null;
+      let discount = 0;
+      let discountPercent = 0;
+      let couponCode = null;
+
+      if (coupon && subtotal > 0) {
+        discountPercent = coupon.discountPercent || 5;
+        discount = Math.round((subtotal * (discountPercent / 100)) * 100) / 100;
+        couponCode = coupon.code;
+      }
+
+      let total = Math.max(0, subtotal - discount + shippingFee);
+      return { 
+        subtotal, 
+        discount, 
+        discountPercent, 
+        couponCode, 
+        coupon, 
+        shippingFee, 
+        total, 
+        isOnlyTestProduct, 
+        deliveryFee, 
+        freeThreshold, 
+        isFreeShipping 
+      };
     },
     updateBadge: function() {
       let cart = this.get();
@@ -210,6 +235,61 @@
         el.textContent = count;
         el.style.display = count > 0 ? 'flex' : 'none';
       });
+    }
+  };
+
+  // 3.5 RAKSHA BANDHAN & STORE COUPON ENGINE
+  window.UR_COUPON = {
+    get: function() {
+      try {
+        const raw = localStorage.getItem('ur_applied_coupon');
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    },
+    set: function(couponObj) {
+      if (couponObj) {
+        localStorage.setItem('ur_applied_coupon', JSON.stringify(couponObj));
+      } else {
+        localStorage.removeItem('ur_applied_coupon');
+      }
+    },
+    apply: function(code) {
+      const clean = (code || '').trim().toUpperCase();
+      if (clean === 'RAKHI5') {
+        const coupon = {
+          code: 'RAKHI5',
+          discountPercent: 5,
+          label: 'Raksha Bandhan Special (5% OFF)'
+        };
+        this.set(coupon);
+        if (typeof window.UR_TOAST === 'function') {
+          window.UR_TOAST('🎉 Coupon RAKHI5 applied! 5% discount activated.');
+        }
+        return { success: true, coupon };
+      } else {
+        if (typeof window.UR_TOAST === 'function') {
+          window.UR_TOAST('Invalid coupon code. Use RAKHI5 for 5% off!');
+        }
+        return { success: false, message: 'Invalid coupon code' };
+      }
+    },
+    toggle: function(code = 'RAKHI5') {
+      const current = this.get();
+      if (current && current.code === code) {
+        this.remove();
+        return false;
+      } else {
+        this.apply(code);
+        return true;
+      }
+    },
+    remove: function() {
+      this.set(null);
+      if (typeof window.UR_TOAST === 'function') {
+        window.UR_TOAST('Coupon removed.');
+      }
     }
   };
 

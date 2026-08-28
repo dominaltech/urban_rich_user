@@ -75,10 +75,27 @@
     </div>
 
     <div style="background:var(--bg-secondary);padding:28px;border-radius:4px;border:1px solid var(--border);height:fit-content;">
-      <h3 style="font-family:var(--font-heading);font-size:1.2rem;font-weight:700;margin-bottom:20px;text-transform:uppercase;">ORDER SUMMARY</h3>
+      <h3 style="font-family:var(--font-heading);font-size:1.2rem;font-weight:700;margin-bottom:14px;text-transform:uppercase;">ORDER SUMMARY</h3>
+      
+      <!-- RAKSHA BANDHAN CREATIVE MINIMAL COUPON BANNER -->
+      <div class="rakhi-coupon-banner" id="rakhiCartBanner" onclick="toggleRakhiCart()">
+        <div class="rakhi-banner-left">
+          <span class="rakhi-badge">✨ RAKSHA BANDHAN SPECIAL</span>
+          <div class="rakhi-title">Get <strong>5% OFF</strong> on your order!</div>
+          <div class="rakhi-sub">Use coupon code <span class="rakhi-code">RAKHI5</span></div>
+        </div>
+        <button type="button" class="rakhi-apply-btn" id="rakhiCartBtn" onclick="event.stopPropagation(); toggleRakhiCart();">
+          APPLY
+        </button>
+      </div>
+
       <div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:14px;">
         <span>Subtotal</span>
         <span id="subtotalVal">₹0.00</span>
+      </div>
+      <div id="discountRow" style="display:none;justify-content:space-between;margin-bottom:12px;font-size:14px;color:#10b981;font-weight:700;">
+        <span>Raksha Bandhan (5% OFF)</span>
+        <span id="discountVal">-₹0.00</span>
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:14px;">
         <span>Shipping Fee</span>
@@ -202,6 +219,29 @@
     document.getElementById('subtotalVal').textContent = `₹${totals.subtotal.toFixed(2)}`;
     document.getElementById('shippingVal').textContent = totals.shippingFee === 0 ? 'FREE (₹0)' : `₹${totals.shippingFee.toFixed(2)}`;
     document.getElementById('totalVal').textContent = `₹${totals.total.toFixed(2)}`;
+
+    // Coupon UI sync
+    const discountRow = document.getElementById('discountRow');
+    const discountVal = document.getElementById('discountVal');
+    const rakhiBanner = document.getElementById('rakhiCartBanner');
+    const rakhiBtn = document.getElementById('rakhiCartBtn');
+
+    if (totals.discount > 0 && totals.couponCode === 'RAKHI5') {
+      if (discountRow) discountRow.style.display = 'flex';
+      if (discountVal) discountVal.textContent = `-₹${totals.discount.toFixed(2)}`;
+      if (rakhiBanner) rakhiBanner.classList.add('applied');
+      if (rakhiBtn) rakhiBtn.textContent = '✓ 5% APPLIED';
+    } else {
+      if (discountRow) discountRow.style.display = 'none';
+      if (rakhiBanner) rakhiBanner.classList.remove('applied');
+      if (rakhiBtn) rakhiBtn.textContent = 'APPLY';
+    }
+  }
+
+  function toggleRakhiCart() {
+    if (!window.UR_COUPON) return;
+    window.UR_COUPON.toggle('RAKHI5');
+    renderCart();
   }
 
   function updateQty(id, size, delta) {

@@ -421,9 +421,21 @@
             <span style="font-size:11px;font-weight:700;color:var(--sale-red);letter-spacing:1px;text-transform:uppercase;">LUXURY STREETWEAR</span>
             <h1 style="font-family:var(--font-heading);font-size:2rem;font-weight:700;line-height:1.2;">${product.name}</h1>
             <div style="display:flex;align-items:baseline;gap:12px;">
-              <span style="font-size:1.6rem;font-weight:700;">₹${product.price}</span>
+              <span style="font-size:1.6rem;font-weight:700;" id="pdpPriceVal">₹${product.price}</span>
               ${product.mrp ? `<span style="text-decoration:line-through;color:var(--text-muted);font-size:1rem;">₹${product.mrp}</span>` : ''}
               ${product.mrp ? `<span style="color:var(--sale-red);font-weight:700;font-size:0.9rem;">${Math.round(((product.mrp - product.price)/product.mrp)*100)}% OFF</span>` : ''}
+            </div>
+
+            <!-- RAKSHA BANDHAN CREATIVE MINIMAL COUPON BANNER -->
+            <div class="rakhi-coupon-banner ${window.UR_COUPON && window.UR_COUPON.get()?.code === 'RAKHI5' ? 'applied' : ''}" id="rakhiCouponBanner" onclick="toggleRakhiPDP(this)">
+              <div class="rakhi-banner-left">
+                <span class="rakhi-badge">✨ RAKSHA BANDHAN SPECIAL</span>
+                <div class="rakhi-title">Get <strong>5% OFF</strong> on your order!</div>
+                <div class="rakhi-sub">Use coupon code <span class="rakhi-code">RAKHI5</span></div>
+              </div>
+              <button type="button" class="rakhi-apply-btn" id="rakhiApplyBtn" onclick="event.stopPropagation(); toggleRakhiPDP();">
+                ${window.UR_COUPON && window.UR_COUPON.get()?.code === 'RAKHI5' ? '✓ 5% APPLIED' : 'APPLY CODE'}
+              </button>
             </div>
 
             <div>
@@ -610,6 +622,29 @@
       content.style.display = 'block';
     } else {
       content.style.display = 'none';
+    }
+  }
+
+  function toggleRakhiPDP() {
+    if (!window.UR_COUPON) return;
+    const isApplied = window.UR_COUPON.toggle('RAKHI5');
+    const banner = document.getElementById('rakhiCouponBanner');
+    const btn = document.getElementById('rakhiApplyBtn');
+    const priceVal = document.getElementById('pdpPriceVal');
+
+    if (isApplied) {
+      if (banner) banner.classList.add('applied');
+      if (btn) btn.textContent = '✓ 5% APPLIED';
+      if (currentProduct && priceVal) {
+        const discounted = (currentProduct.price * 0.95).toFixed(0);
+        priceVal.innerHTML = `₹${discounted} <span style="font-size:0.9rem; color:#10b981; font-weight:700;">(5% OFF with RAKHI5)</span>`;
+      }
+    } else {
+      if (banner) banner.classList.remove('applied');
+      if (btn) btn.textContent = 'APPLY CODE';
+      if (currentProduct && priceVal) {
+        priceVal.textContent = `₹${currentProduct.price}`;
+      }
     }
   }
 </script>

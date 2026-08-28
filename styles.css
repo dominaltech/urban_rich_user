@@ -1475,6 +1475,117 @@ svg { display: block; }
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ============================================
+   RAKSHA BANDHAN MINIMAL CREATIVE COUPON BANNER
+   ============================================ */
+.rakhi-coupon-banner {
+  background: linear-gradient(135deg, #111111 0%, #1c1a16 100%);
+  border: 1px solid #3d3423;
+  border-left: 3.5px solid #d4af37;
+  border-radius: 6px;
+  padding: 11px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+.rakhi-coupon-banner::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(212,175,55,0.08) 0%, transparent 60%);
+  pointer-events: none;
+}
+.rakhi-coupon-banner:hover {
+  border-color: #d4af37;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(212,175,55,0.15);
+}
+.rakhi-coupon-banner.applied {
+  background: linear-gradient(135deg, #0b1f12 0%, #112d1c 100%);
+  border-color: #10b981;
+  border-left-color: #10b981;
+}
+.rakhi-banner-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  z-index: 1;
+}
+.rakhi-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #d4af37;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.rakhi-coupon-banner.applied .rakhi-badge {
+  color: #34d399;
+}
+.rakhi-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1.3;
+}
+.rakhi-sub {
+  font-size: 11px;
+  color: #a3a3a3;
+  margin-top: 1px;
+}
+.rakhi-code {
+  display: inline-block;
+  background: rgba(255,255,255,0.12);
+  color: #ffffff;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 800;
+  font-family: monospace;
+  letter-spacing: 0.5px;
+  border: 1px dashed rgba(212,175,55,0.5);
+}
+.rakhi-coupon-banner.applied .rakhi-code {
+  border-color: rgba(52,211,153,0.5);
+}
+.rakhi-apply-btn {
+  padding: 7px 13px;
+  background: #d4af37;
+  color: #000000;
+  font-weight: 800;
+  font-size: 10.5px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  z-index: 1;
+  flex-shrink: 0;
+}
+.rakhi-apply-btn:hover {
+  background: #f3cf65;
+  transform: scale(1.03);
+}
+.rakhi-coupon-banner.applied .rakhi-apply-btn {
+  background: #10b981;
+  color: #ffffff;
+}
+
+
 
 
 

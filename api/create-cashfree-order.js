@@ -7,30 +7,34 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { order_id, order_amount, order_currency, customer_details } = req.body;
+    const { order_id, order_amount, order_currency, customer_details } = req.body || {};
 
     const appId = process.env.CASHFREE_APP_ID;
     const secretKey = process.env.CASHFREE_SECRET_KEY;
     const env = process.env.CASHFREE_ENV || "PRODUCTION";
 
     if (!appId || !secretKey) {
-      return res.status(400).json({ error: 'Cashfree credentials missing in Vercel environment variables' });
+      return res.status(400).json({ error: 'Cashfree credentials missing in environment variables' });
     }
 
     const host = env === "PRODUCTION" ? "api.cashfree.com" : "sandbox.cashfree.com";
 
+    const origin = req.headers.origin || req.headers.referer ? (req.headers.origin || new URL(req.headers.referer).origin) : 'https://urbanrichshop.com';
+    const returnUrl = `${origin}/order-success.html?order_id={order_id}`;
+
+    const cust = customer_details || {};
     const postData = JSON.stringify({
       order_id: order_id,
       order_amount: parseFloat(order_amount),
       order_currency: order_currency || 'INR',
       customer_details: {
-        customer_id: customer_details.customer_id || 'cust_' + Date.now(),
-        customer_name: customer_details.customer_name,
-        customer_email: customer_details.customer_email,
-        customer_phone: customer_details.customer_phone
+        customer_id: cust.customer_id || 'cust_' + Date.now(),
+        customer_name: cust.customer_name || 'Urban Customer',
+        customer_email: cust.customer_email || 'support@urbanrichshop.com',
+        customer_phone: cust.customer_phone ? cust.customer_phone.replace(/[^0-9]/g, '').slice(-10) : '9876543210'
       },
       order_meta: {
-        return_url: req.headers.origin ? `${req.headers.origin}/order-success.html?order_id={order_id}&payment=success` : `https://urbanrichshop.com/order-success.html?order_id={order_id}&payment=success`
+        return_url: returnUrl
       }
     });
 
