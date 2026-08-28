@@ -212,50 +212,6 @@
 <script>
   let isOrdersLoading = false;
 
-  function renderLookupForm(initialMsg = '') {
-    const container = document.getElementById('ordersContainer');
-    container.innerHTML = `
-      <div class="order-lookup-card">
-        <div style="font-size: 36px; margin-bottom: 8px;">📦</div>
-        <h2 style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 800; text-transform: uppercase;">TRACK YOUR ORDERS</h2>
-        <p style="color: var(--text-muted); font-size: 13.5px; margin-top: 6px;">
-          ${initialMsg || 'Enter your 10-digit mobile number or Order ID to securely view your personal orders.'}
-        </p>
-        <form class="order-lookup-form" onsubmit="event.preventDefault(); handleLookupSubmit();">
-          <input type="text" id="lookupQueryInput" class="order-lookup-input" placeholder="Enter Mobile No. (e.g. 9876543210)" required />
-          <button type="submit" class="order-lookup-btn">FIND ORDERS →</button>
-        </form>
-      </div>
-    `;
-  }
-
-  function handleLookupSubmit() {
-    const input = document.getElementById('lookupQueryInput');
-    if (!input) return;
-    const query = input.value.trim();
-    if (!query) return;
-
-    // Check if phone number or order number
-    const cleanPhone = query.replace(/[^0-9]/g, '');
-    if (cleanPhone.length >= 10) {
-      localStorage.setItem('ur_user_phone', cleanPhone.slice(-10));
-    } else {
-      let myOrders = JSON.parse(localStorage.getItem('ur_my_orders') || '[]');
-      if (!myOrders.includes(query.toUpperCase())) {
-        myOrders.unshift(query.toUpperCase());
-        localStorage.setItem('ur_my_orders', JSON.stringify(myOrders));
-      }
-    }
-
-    loadMyOrders();
-  }
-
-  function resetPhoneFilter() {
-    localStorage.removeItem('ur_user_phone');
-    localStorage.removeItem('ur_my_orders');
-    renderLookupForm('Switched account. Enter your mobile number to view your orders:');
-  }
-
   async function loadMyOrders() {
     if (isOrdersLoading) return;
     const container = document.getElementById('ordersContainer');
@@ -278,64 +234,50 @@
       const savedPhone = localStorage.getItem('ur_user_phone') || '';
       const savedEmail = localStorage.getItem('ur_user_email') || '';
       const myOrdersList = JSON.parse(localStorage.getItem('ur_my_orders') || '[]');
-
       const cleanPhone = savedPhone ? savedPhone.replace(/[^0-9]/g, '').slice(-10) : '';
 
-      // 3. If NO identity found, show Lookup Form (PREVENTS LEAKING ALL STORE ORDERS)
-      if (!authUser && !cleanPhone && myOrdersList.length === 0) {
-        renderLookupForm();
-        return;
-      }
-
-      // 4. Query Supabase STRICTLY for this user's records only
+      // 3. Build Automatic Query for this customer only
       let query = client.from('orders').select('*, order_items(*)');
 
       if (authUser) {
-        // Authenticated user: match by user_id OR email OR phone
         const filters = [`user_id.eq.${authUser.id}`];
         if (authUser.email) filters.push(`customer_email.eq.${authUser.email}`);
         if (cleanPhone) filters.push(`customer_phone.ilike.%${cleanPhone}%`);
         query = query.or(filters.join(','));
       } else if (cleanPhone && myOrdersList.length > 0) {
-        // Match customer_phone OR order_numbers placed on this device
         query = query.or(`customer_phone.ilike.%${cleanPhone}%,order_number.in.(${myOrdersList.map(n => `"${n}"`).join(',')})`);
       } else if (cleanPhone) {
-        // Match by phone number (last 10 digits)
         query = query.ilike('customer_phone', `%${cleanPhone}%`);
       } else if (myOrdersList.length > 0) {
-        // Match by order numbers placed on this device
         query = query.in('order_number', myOrdersList);
-      }
-
-      let { data: orders, error } = await query.order('created_at', { ascending: false });
-
-      if (error || !orders) {
-        console.warn('Orders query fallback:', error);
-        orders = [];
-      }
-
-      if (!orders || orders.length === 0) {
+      } else {
+        // No orders placed on this device yet
         container.innerHTML = `
-          <div class="user-orders-meta-bar">
-            <span>📱 Showing orders for: <strong>${cleanPhone ? '+91 ' + cleanPhone : (authUser?.email || 'Your Account')}</strong></span>
-            <button class="btn-switch-phone" onclick="resetPhoneFilter()">Switch Phone / Account</button>
-          </div>
-          <div style="text-align: center; padding: 50px 0; background: var(--bg); border: 1px solid var(--border); border-radius: 6px;">
-            <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 16px;">No orders found for this number.</p>
-            <a href="shop.html" style="display:inline-block;padding:12px 24px;background:var(--black);color:#fff;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;text-decoration:none;border-radius:4px;">EXPLORE STREETWEAR</a>
+          <div style="text-align: center; padding: 60px 20px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px;">
+            <div style="font-size: 40px; margin-bottom: 12px;">🛍️</div>
+            <h2 style="font-family: var(--font-heading); font-size: 1.3rem; font-weight: 800; text-transform: uppercase;">NO ORDERS FOUND</h2>
+            <p style="color: var(--text-muted); font-size: 14px; margin: 8px 0 20px;">You haven't placed any orders on this device yet.</p>
+            <a href="shop.html" style="display:inline-block;padding:12px 28px;background:var(--black);color:#fff;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;text-decoration:none;border-radius:4px;">EXPLORE STREETWEAR</a>
           </div>
         `;
         return;
       }
 
-      const metaHeader = `
-        <div class="user-orders-meta-bar">
-          <span>📱 Showing <strong>${orders.length}</strong> personal order(s) for: <strong>${cleanPhone ? '+91 ' + cleanPhone : (authUser?.email || 'Your Account')}</strong></span>
-          <button class="btn-switch-phone" onclick="resetPhoneFilter()">Change / Switch Number</button>
-        </div>
-      `;
+      let { data: orders, error } = await query.order('created_at', { ascending: false });
 
-      container.innerHTML = metaHeader + orders.map(o => {
+      if (error || !orders || orders.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 60px 20px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px;">
+            <div style="font-size: 40px; margin-bottom: 12px;">📦</div>
+            <h2 style="font-family: var(--font-heading); font-size: 1.3rem; font-weight: 800; text-transform: uppercase;">NO ORDERS FOUND</h2>
+            <p style="color: var(--text-muted); font-size: 14px; margin: 8px 0 20px;">No past orders recorded for your profile.</p>
+            <a href="shop.html" style="display:inline-block;padding:12px 28px;background:var(--black);color:#fff;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;text-decoration:none;border-radius:4px;">START SHOPPING</a>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = orders.map(o => {
         const items = o.order_items || [];
         const itemsHtml = items.length > 0 ? `
           <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px dashed var(--border);">
