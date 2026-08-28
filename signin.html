@@ -266,6 +266,9 @@
       } catch(e) {}
     }
     localStorage.removeItem('ur_user_profile');
+    localStorage.removeItem('ur_user_phone');
+    localStorage.removeItem('ur_user_email');
+    localStorage.removeItem('ur_my_orders');
     window.UR_TOAST('Signed out successfully!');
     setTimeout(() => {
       window.location.reload();
@@ -283,18 +286,22 @@
         window.UR_TOAST('Sign In Error: ' + error.message);
       } else {
         const u = data.user;
+        const phone = u.user_metadata?.phone || '';
         const userMeta = {
           name: u.user_metadata?.full_name || email.split('@')[0],
           email: u.email,
-          phone: u.user_metadata?.phone || '+91 9876543210'
+          phone: phone || '+91 9876543210'
         };
         localStorage.setItem('ur_user_profile', JSON.stringify(userMeta));
+        if (phone) localStorage.setItem('ur_user_phone', phone);
+        localStorage.setItem('ur_user_email', u.email);
         window.UR_TOAST('Signed in successfully!');
         checkAuthSession();
       }
     } else {
       const userMeta = { name: email.split('@')[0], email: email, phone: '+91 9876543210' };
       localStorage.setItem('ur_user_profile', JSON.stringify(userMeta));
+      localStorage.setItem('ur_user_email', email);
       window.UR_TOAST('Signed in successfully!');
       checkAuthSession();
     }
@@ -309,6 +316,8 @@
 
     const userMeta = { name, email, phone };
     localStorage.setItem('ur_user_profile', JSON.stringify(userMeta));
+    localStorage.setItem('ur_user_phone', phone);
+    localStorage.setItem('ur_user_email', email);
 
     if (window.urSupabase) {
       const { data, error } = await window.urSupabase.auth.signUp({

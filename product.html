@@ -426,17 +426,8 @@
               ${product.mrp ? `<span style="color:var(--sale-red);font-weight:700;font-size:0.9rem;">${Math.round(((product.mrp - product.price)/product.mrp)*100)}% OFF</span>` : ''}
             </div>
 
-            <!-- RAKSHA BANDHAN CREATIVE MINIMAL COUPON BANNER -->
-            <div class="rakhi-coupon-banner ${window.UR_COUPON && window.UR_COUPON.get()?.code === 'RAKHI5' ? 'applied' : ''}" id="rakhiCouponBanner" onclick="toggleRakhiPDP(this)">
-              <div class="rakhi-banner-left">
-                <span class="rakhi-badge">✨ RAKSHA BANDHAN SPECIAL</span>
-                <div class="rakhi-title">Get <strong>5% OFF</strong> on your order!</div>
-                <div class="rakhi-sub">Use coupon code <span class="rakhi-code">RAKHI5</span></div>
-              </div>
-              <button type="button" class="rakhi-apply-btn" id="rakhiApplyBtn" onclick="event.stopPropagation(); toggleRakhiPDP();">
-                ${window.UR_COUPON && window.UR_COUPON.get()?.code === 'RAKHI5' ? '✓ 5% APPLIED' : 'APPLY CODE'}
-              </button>
-            </div>
+            <!-- DYNAMIC PROMOTIONAL / EVENT COUPON BANNER -->
+            <div id="pdpCouponBannerContainer"></div>
 
             <div>
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -482,6 +473,9 @@
           </div>
         </div>
       `;
+
+      // Render Dynamic Coupon Banner if enabled in Admin
+      renderPDPCoupon();
 
       // Touch swipe support for mobile
       setupTouchSwipe();
@@ -625,26 +619,70 @@
     }
   }
 
-  function toggleRakhiPDP() {
-    if (!window.UR_COUPON) return;
-    const isApplied = window.UR_COUPON.toggle('RAKHI5');
-    const banner = document.getElementById('rakhiCouponBanner');
-    const btn = document.getElementById('rakhiApplyBtn');
-    const priceVal = document.getElementById('pdpPriceVal');
+  let activePDPCoupon = null;
 
+  async function renderPDPCoupon() {
+    const container = document.getElementById('pdpCouponBannerContainer');
+    if (!container || !window.UR_COUPON) return;
+
+    try {
+      const coupon = await window.UR_COUPON.fetchProductBannerCoupon();
+      if (!coupon || !coupon.is_active || !coupon.show_product_banner) {
+        container.innerHTML = '';
+        activePDPCoupon = null;
+        return;
+      }
+
+      activePDPCoupon = coupon;
+      const isPct = (coupon.discount_type === 'PERCENTAGE');
+      const discountStr = isPct ? `${parseFloat(coupon.discount_value)}% OFF` : `₹${parseFloat(coupon.discount_value).toFixed(0)} FLAT OFF`;
+      const isApplied = window.UR_COUPON.isApplied(coupon.code);
+
+      container.innerHTML = `
+        <div class="rakhi-coupon-banner ${isApplied ? 'applied' : ''}" id="pdpCouponBanner" onclick="toggleProductCoupon()">
+          <div class="rakhi-banner-left">
+            <span class="rakhi-badge">${coupon.banner_tag || '✨ SPECIAL EVENT OFFER'}</span>
+            <div class="rakhi-title">Get <strong>${discountStr}</strong> on your order!</div>
+            <div class="rakhi-sub">Use coupon code <span class="rakhi-code">${coupon.code}</span></div>
+          </div>
+          <button type="button" class="rakhi-apply-btn" id="pdpCouponApplyBtn" onclick="event.stopPropagation(); toggleProductCoupon();">
+            ${isApplied ? `✓ ${discountStr} APPLIED` : 'APPLY CODE'}
+          </button>
+        </div>
+      `;
+      updatePDPPriceDisplay();
+    } catch (e) {
+      container.innerHTML = '';
+    }
+  }
+
+  async function toggleProductCoupon() {
+    if (!activePDPCoupon || !window.UR_COUPON) return;
+    const isApplied = window.UR_COUPON.isApplied(activePDPCoupon.code);
     if (isApplied) {
-      if (banner) banner.classList.add('applied');
-      if (btn) btn.textContent = '✓ 5% APPLIED';
-      if (currentProduct && priceVal) {
-        const discounted = (currentProduct.price * 0.95).toFixed(0);
-        priceVal.innerHTML = `₹${discounted} <span style="font-size:0.9rem; color:#10b981; font-weight:700;">(5% OFF with RAKHI5)</span>`;
-      }
+      window.UR_COUPON.remove();
     } else {
-      if (banner) banner.classList.remove('applied');
-      if (btn) btn.textContent = 'APPLY CODE';
-      if (currentProduct && priceVal) {
-        priceVal.textContent = `₹${currentProduct.price}`;
+      await window.UR_COUPON.apply(activePDPCoupon.code);
+    }
+    renderPDPCoupon();
+  }
+
+  function updatePDPPriceDisplay() {
+    const priceVal = document.getElementById('pdpPriceVal');
+    if (!currentProduct || !priceVal) return;
+
+    if (activePDPCoupon && window.UR_COUPON && window.UR_COUPON.isApplied(activePDPCoupon.code)) {
+      const isPct = (activePDPCoupon.discount_type === 'PERCENTAGE');
+      let discounted = currentProduct.price;
+      if (isPct) {
+        discounted = Math.max(0, currentProduct.price * (1 - (activePDPCoupon.discount_value / 100)));
+      } else {
+        discounted = Math.max(0, currentProduct.price - activePDPCoupon.discount_value);
       }
+      const tag = isPct ? `${activePDPCoupon.discount_value}% OFF` : `₹${activePDPCoupon.discount_value} OFF`;
+      priceVal.innerHTML = `₹${discounted.toFixed(0)} <span style="font-size:0.9rem; color:#10b981; font-weight:700;">(${tag} with ${activePDPCoupon.code})</span>`;
+    } else {
+      priceVal.textContent = `₹${currentProduct.price}`;
     }
   }
 </script>

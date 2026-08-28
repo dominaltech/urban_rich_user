@@ -215,24 +215,9 @@
     </div>
   </section>
 
-  <!-- RAKSHA BANDHAN 5% OFF MINIMAL BANNER STRIP -->
-  <section class="rakhi-home-strip" id="rakhiHomeStrip">
-    <div class="container">
-      <div class="rakhi-strip-inner">
-        <div class="rakhi-strip-left">
-          <div class="rakhi-badge-pill">✨ RAKSHA BANDHAN SPECIAL</div>
-          <div class="rakhi-strip-text">
-            <span class="rakhi-strip-title">FLAT 5% OFF ON ALL ORDERS</span>
-            <span class="rakhi-strip-sub">Celebrate with luxury streetwear — Use code <strong class="rakhi-strip-code">RAKHI5</strong> at checkout</span>
-          </div>
-        </div>
-        <div class="rakhi-strip-right">
-          <button class="rakhi-strip-btn" id="rakhiHomeApplyBtn" onclick="toggleRakhiHomeBanner()">
-            <span id="rakhiHomeBtnText">⚡ APPLY 5% OFF</span>
-          </button>
-        </div>
-      </div>
-    </div>
+  <!-- DYNAMIC EVENT & PROMOTION BANNER STRIP (MANAGED VIA ADMIN PANEL) -->
+  <section class="rakhi-home-strip" id="homeEventStrip" style="display: none;">
+    <!-- Injected dynamically via loadHomeEventBanner() -->
   </section>
 
   <!-- CATEGORY TILES -->
@@ -557,39 +542,71 @@
     } catch(e) { console.error('loadHomePageData error:', e); }
   }
 
-  function updateRakhiHomeBannerState() {
-    const isApplied = window.UR_COUPON && window.UR_COUPON.isApplied('RAKHI5');
-    const strip = document.getElementById('rakhiHomeStrip');
-    const btnText = document.getElementById('rakhiHomeBtnText');
-    if (!strip || !btnText) return;
+  let currentActiveHomeCoupon = null;
 
-    if (isApplied) {
-      strip.classList.add('applied');
-      btnText.textContent = '✓ 5% OFF APPLIED (RAKHI5)';
-    } else {
-      strip.classList.remove('applied');
-      btnText.textContent = '⚡ APPLY 5% OFF';
+  async function loadHomeEventBanner() {
+    const strip = document.getElementById('homeEventStrip');
+    if (!strip || !window.UR_COUPON) return;
+
+    try {
+      const coupon = await window.UR_COUPON.fetchHomeBannerCoupon();
+      if (!coupon || !coupon.is_active || !coupon.show_home_banner) {
+        strip.style.display = 'none';
+        strip.innerHTML = '';
+        currentActiveHomeCoupon = null;
+        return;
+      }
+
+      currentActiveHomeCoupon = coupon;
+      const isPct = (coupon.discount_type === 'PERCENTAGE');
+      const discountStr = isPct ? `${parseFloat(coupon.discount_value)}% OFF` : `₹${parseFloat(coupon.discount_value).toFixed(0)} OFF`;
+      const isApplied = window.UR_COUPON.isApplied(coupon.code);
+
+      strip.style.display = 'block';
+      strip.className = `rakhi-home-strip ${isApplied ? 'applied' : ''}`;
+      strip.innerHTML = `
+        <div class="container">
+          <div class="rakhi-strip-inner">
+            <div class="rakhi-strip-left">
+              <div class="rakhi-badge-pill">${coupon.banner_tag || '✨ SPECIAL EVENT OFFER'}</div>
+              <div class="rakhi-strip-text">
+                <span class="rakhi-strip-title">${coupon.banner_message || 'FLAT ' + discountStr + ' ON ALL ORDERS'}</span>
+                <span class="rakhi-strip-sub">Use coupon code <strong class="rakhi-strip-code">${coupon.code}</strong> at checkout</span>
+              </div>
+            </div>
+            <div class="rakhi-strip-right">
+              <button class="rakhi-strip-btn" onclick="toggleHomeEventCoupon()">
+                <span>${isApplied ? `✓ ${discountStr} APPLIED (${coupon.code})` : `⚡ APPLY ${discountStr}`}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    } catch(err) {
+      console.error('loadHomeEventBanner error:', err);
+      strip.style.display = 'none';
     }
   }
 
-  function toggleRakhiHomeBanner() {
-    if (!window.UR_COUPON) return;
-    const isApplied = window.UR_COUPON.isApplied('RAKHI5');
+  async function toggleHomeEventCoupon() {
+    if (!currentActiveHomeCoupon || !window.UR_COUPON) return;
+    const isApplied = window.UR_COUPON.isApplied(currentActiveHomeCoupon.code);
     if (isApplied) {
       window.UR_COUPON.remove();
-      if (typeof window.UR_TOAST === 'function') window.UR_TOAST('Coupon RAKHI5 removed.');
     } else {
-      window.UR_COUPON.apply('RAKHI5');
-      if (typeof window.UR_TOAST === 'function') window.UR_TOAST('🎉 Raksha Bandhan 5% OFF coupon applied to your bag!');
+      await window.UR_COUPON.apply(currentActiveHomeCoupon.code);
     }
-    updateRakhiHomeBannerState();
+    loadHomeEventBanner();
   }
 
   document.addEventListener('DOMContentLoaded', function() {
     startHeroSlider();
     loadHomePageData();
-    updateRakhiHomeBannerState();
-    document.addEventListener('urSupabaseReady', loadHomePageData);
+    loadHomeEventBanner();
+    document.addEventListener('urSupabaseReady', function() {
+      loadHomePageData();
+      loadHomeEventBanner();
+    });
   });
 </script>
 </body>

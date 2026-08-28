@@ -201,23 +201,39 @@
       let isFreeShipping = isOnlyTestProduct || (freeThreshold > 0 && subtotal >= freeThreshold);
       let shippingFee = isFreeShipping ? 0 : (subtotal > 0 ? deliveryFee : 0);
 
-      // Coupon discount calculation
+      // Dynamic Coupon discount calculation
       let coupon = window.UR_COUPON ? window.UR_COUPON.get() : null;
       let discount = 0;
-      let discountPercent = 0;
+      let discountType = null;
+      let discountValue = 0;
       let couponCode = null;
 
       if (coupon && subtotal > 0) {
-        discountPercent = coupon.discountPercent || 5;
-        discount = Math.round((subtotal * (discountPercent / 100)) * 100) / 100;
-        couponCode = coupon.code;
+        const minOrder = parseFloat(coupon.min_order_value || 0);
+        if (subtotal >= minOrder) {
+          couponCode = coupon.code;
+          discountType = coupon.discount_type || 'PERCENTAGE';
+          discountValue = parseFloat(coupon.discount_value || 0);
+
+          if (discountType === 'PERCENTAGE') {
+            discount = (subtotal * (discountValue / 100));
+            if (coupon.max_discount && discount > parseFloat(coupon.max_discount)) {
+              discount = parseFloat(coupon.max_discount);
+            }
+          } else {
+            // Flat amount discount
+            discount = Math.min(subtotal, discountValue);
+          }
+          discount = Math.round(discount * 100) / 100;
+        }
       }
 
       let total = Math.max(0, subtotal - discount + shippingFee);
       return { 
         subtotal, 
         discount, 
-        discountPercent, 
+        discountType,
+        discountValue, 
         couponCode, 
         coupon, 
         shippingFee, 
@@ -238,7 +254,7 @@
     }
   };
 
-  // 3.5 RAKSHA BANDHAN & STORE COUPON ENGINE
+  // 3.5 DYNAMIC STORE COUPON & EVENT BANNER ENGINE
   window.UR_COUPON = {
     get: function() {
       try {
@@ -255,34 +271,117 @@
         localStorage.removeItem('ur_applied_coupon');
       }
     },
-    apply: function(code) {
-      const clean = (code || '').trim().toUpperCase();
-      if (clean === 'RAKHI5') {
-        const coupon = {
-          code: 'RAKHI5',
-          discountPercent: 5,
-          label: 'Raksha Bandhan Special (5% OFF)'
-        };
-        this.set(coupon);
-        if (typeof window.UR_TOAST === 'function') {
-          window.UR_TOAST('🎉 Coupon RAKHI5 applied! 5% discount activated.');
-        }
-        return { success: true, coupon };
-      } else {
-        if (typeof window.UR_TOAST === 'function') {
-          window.UR_TOAST('Invalid coupon code. Use RAKHI5 for 5% off!');
-        }
-        return { success: false, message: 'Invalid coupon code' };
+    fetchActiveCoupons: async function() {
+      const client = window.urSupabase || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.UR_CONFIG.SUPABASE_URL, window.UR_CONFIG.SUPABASE_ANON_KEY) : null);
+      if (!client) return [];
+      try {
+        const { data, error } = await client
+          .from('coupons')
+          .select('*')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false });
+        return data || [];
+      } catch (err) {
+        return [];
       }
     },
-    toggle: function(code = 'RAKHI5') {
+    fetchHomeBannerCoupon: async function() {
+      const client = window.urSupabase || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.UR_CONFIG.SUPABASE_URL, window.UR_CONFIG.SUPABASE_ANON_KEY) : null);
+      if (!client) return null;
+      try {
+        const { data, error } = await client
+          .from('coupons')
+          .select('*')
+          .eq('is_active', true)
+          .eq('show_home_banner', true)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        return data || null;
+      } catch (err) {
+        return null;
+      }
+    },
+    fetchProductBannerCoupon: async function() {
+      const client = window.urSupabase || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.UR_CONFIG.SUPABASE_URL, window.UR_CONFIG.SUPABASE_ANON_KEY) : null);
+      if (!client) return null;
+      try {
+        const { data, error } = await client
+          .from('coupons')
+          .select('*')
+          .eq('is_active', true)
+          .eq('show_product_banner', true)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        return data || null;
+      } catch (err) {
+        return null;
+      }
+    },
+    apply: async function(code) {
+      const clean = (code || '').trim().toUpperCase();
+      if (!clean) {
+        if (typeof window.UR_TOAST === 'function') window.UR_TOAST('Please enter a coupon code');
+        return { success: false, message: 'Please enter a coupon code' };
+      }
+
+      const client = window.urSupabase || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.UR_CONFIG.SUPABASE_URL, window.UR_CONFIG.SUPABASE_ANON_KEY) : null);
+      
+      let couponData = null;
+      if (client) {
+        try {
+          const { data, error } = await client
+            .from('coupons')
+            .select('*')
+            .eq('code', clean)
+            .eq('is_active', true)
+            .maybeSingle();
+          if (data) couponData = data;
+        } catch (e) {}
+      }
+
+      // Fallback defaults
+      if (!couponData && (clean === 'URBAN5' || clean === 'RAKHI5')) {
+        couponData = {
+          code: clean,
+          title: 'Special Discount',
+          discount_type: 'PERCENTAGE',
+          discount_value: 5,
+          min_order_value: 0
+        };
+      }
+
+      if (couponData) {
+        const couponObj = {
+          code: couponData.code,
+          title: couponData.title,
+          discount_type: couponData.discount_type || 'PERCENTAGE',
+          discount_value: parseFloat(couponData.discount_value || 0),
+          min_order_value: parseFloat(couponData.min_order_value || 0),
+          max_discount: couponData.max_discount ? parseFloat(couponData.max_discount) : null
+        };
+        this.set(couponObj);
+        const desc = couponObj.discount_type === 'PERCENTAGE' ? `${couponObj.discount_value}% OFF` : `₹${couponObj.discount_value} OFF`;
+        if (typeof window.UR_TOAST === 'function') {
+          window.UR_TOAST(`🎉 Coupon ${couponObj.code} applied! (${desc})`);
+        }
+        return { success: true, coupon: couponObj };
+      } else {
+        if (typeof window.UR_TOAST === 'function') {
+          window.UR_TOAST('Invalid or expired coupon code.');
+        }
+        return { success: false, message: 'Invalid or expired coupon code' };
+      }
+    },
+    toggle: async function(code) {
       const current = this.get();
-      if (current && current.code === code) {
+      if (current && current.code === (code || '').toUpperCase()) {
         this.remove();
         return false;
       } else {
-        this.apply(code);
-        return true;
+        const res = await this.apply(code);
+        return res.success;
       }
     },
     remove: function() {
@@ -290,6 +389,10 @@
       if (typeof window.UR_TOAST === 'function') {
         window.UR_TOAST('Coupon removed.');
       }
+    },
+    isApplied: function(code) {
+      const current = this.get();
+      return !!(current && current.code === (code || '').toUpperCase());
     }
   };
 

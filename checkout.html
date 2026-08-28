@@ -125,17 +125,8 @@
     <div style="background:var(--bg-secondary);padding:28px;border-radius:4px;height:fit-content;border:1px solid var(--border);">
       <h3 style="font-family:var(--font-heading);font-size:1.2rem;font-weight:700;margin-bottom:14px;text-transform:uppercase;">SUMMARY</h3>
       
-      <!-- RAKSHA BANDHAN CREATIVE MINIMAL COUPON BANNER -->
-      <div class="rakhi-coupon-banner" id="rakhiCheckoutBanner" onclick="toggleRakhiCheckout()">
-        <div class="rakhi-banner-left">
-          <span class="rakhi-badge">✨ RAKSHA BANDHAN SPECIAL</span>
-          <div class="rakhi-title">Get <strong>5% OFF</strong> on your order!</div>
-          <div class="rakhi-sub">Use coupon code <span class="rakhi-code">RAKHI5</span></div>
-        </div>
-        <button type="button" class="rakhi-apply-btn" id="rakhiCheckoutBtn" onclick="event.stopPropagation(); toggleRakhiCheckout();">
-          APPLY
-        </button>
-      </div>
+      <!-- DYNAMIC COUPON BANNER & INPUT (MANAGED VIA ADMIN PANEL) -->
+      <div id="checkoutCouponBannerContainer" style="margin-bottom: 14px;"></div>
 
       <div id="checkoutSummaryList"></div>
       <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
@@ -166,24 +157,15 @@
       submitBtn.textContent = `PROCEED TO SECURE PAYMENT (₹${totals.total.toFixed(2)}) →`;
     }
 
-    // Sync banner UI
-    const rakhiBanner = document.getElementById('rakhiCheckoutBanner');
-    const rakhiBtn = document.getElementById('rakhiCheckoutBtn');
-    if (totals.discount > 0 && totals.couponCode === 'RAKHI5') {
-      if (rakhiBanner) rakhiBanner.classList.add('applied');
-      if (rakhiBtn) rakhiBtn.textContent = '✓ 5% APPLIED';
-    } else {
-      if (rakhiBanner) rakhiBanner.classList.remove('applied');
-      if (rakhiBtn) rakhiBtn.textContent = 'APPLY';
-    }
-
     const list = document.getElementById('checkoutSummaryList');
     const cart = window.UR_CART.get();
     let discountRowHtml = '';
-    if (totals.discount > 0) {
+    if (totals.discount > 0 && totals.couponCode) {
+      const isPct = (totals.discountType === 'PERCENTAGE');
+      const tag = isPct ? `${totals.discountValue}% OFF` : `₹${totals.discountValue} OFF`;
       discountRowHtml = `
         <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:8px;color:#10b981;font-weight:700;">
-          <span>Raksha Bandhan Discount (5% OFF)</span>
+          <span>Coupon (${totals.couponCode} — ${tag})</span>
           <span>-₹${totals.discount.toFixed(2)}</span>
         </div>
       `;
@@ -200,11 +182,60 @@
         <span>${totals.shippingFee === 0 ? 'FREE (₹0)' : '₹' + totals.shippingFee.toFixed(2)}</span>
       </div>
     `;
+
+    renderCheckoutCouponBanner();
   }
 
-  function toggleRakhiCheckout() {
+  let activeCheckoutCoupon = null;
+
+  async function renderCheckoutCouponBanner() {
+    const container = document.getElementById('checkoutCouponBannerContainer');
+    if (!container || !window.UR_COUPON) return;
+
+    try {
+      const coupon = await window.UR_COUPON.fetchProductBannerCoupon();
+      const applied = window.UR_COUPON.get();
+
+      if (!coupon || !coupon.is_active || !coupon.show_product_banner) {
+        if (!applied) {
+          container.innerHTML = '';
+          activeCheckoutCoupon = null;
+          return;
+        }
+      }
+
+      const activeObj = applied || coupon;
+      activeCheckoutCoupon = activeObj;
+
+      const isPct = (activeObj.discount_type === 'PERCENTAGE');
+      const discountStr = isPct ? `${parseFloat(activeObj.discount_value)}% OFF` : `₹${parseFloat(activeObj.discount_value).toFixed(0)} FLAT OFF`;
+      const isApplied = window.UR_COUPON.isApplied(activeObj.code);
+
+      container.innerHTML = `
+        <div class="rakhi-coupon-banner ${isApplied ? 'applied' : ''}" id="checkoutCouponBanner" onclick="toggleCheckoutCoupon('${activeObj.code}')">
+          <div class="rakhi-banner-left">
+            <span class="rakhi-badge">${activeObj.banner_tag || '✨ SPECIAL EVENT OFFER'}</span>
+            <div class="rakhi-title">Get <strong>${discountStr}</strong> on your order!</div>
+            <div class="rakhi-sub">Use coupon code <span class="rakhi-code">${activeObj.code}</span></div>
+          </div>
+          <button type="button" class="rakhi-apply-btn" onclick="event.stopPropagation(); toggleCheckoutCoupon('${activeObj.code}');">
+            ${isApplied ? '✓ APPLIED' : 'APPLY'}
+          </button>
+        </div>
+      `;
+    } catch (e) {
+      container.innerHTML = '';
+    }
+  }
+
+  async function toggleCheckoutCoupon(code) {
     if (!window.UR_COUPON) return;
-    window.UR_COUPON.toggle('RAKHI5');
+    const isApplied = window.UR_COUPON.isApplied(code);
+    if (isApplied) {
+      window.UR_COUPON.remove();
+    } else {
+      await window.UR_COUPON.apply(code);
+    }
     renderCheckoutSummary();
   }
 
@@ -286,12 +317,30 @@
         order_status: 'PLACED'
       };
 
-      // Store in session for receipt rendering
+      // Store in session and device localStorage for personal order tracking
       sessionStorage.setItem('ur_last_order', JSON.stringify({ ...orderData, items: cart, payment_method: 'ONLINE' }));
+      try {
+        let myOrders = JSON.parse(localStorage.getItem('ur_my_orders') || '[]');
+        if (!myOrders.includes(orderNum)) {
+          myOrders.unshift(orderNum);
+          localStorage.setItem('ur_my_orders', JSON.stringify(myOrders));
+        }
+        localStorage.setItem('ur_user_phone', orderData.customer_phone);
+        localStorage.setItem('ur_user_email', orderData.customer_email);
+        localStorage.setItem('ur_user_name', orderData.customer_name);
+      } catch(e) {}
 
       const client = window.urSupabase || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.UR_CONFIG.SUPABASE_URL, window.UR_CONFIG.SUPABASE_ANON_KEY) : null);
       if (client) {
         try {
+          // Check if authenticated user
+          try {
+            const { data: sessionData } = await client.auth.getSession();
+            if (sessionData?.session?.user) {
+              orderData.user_id = sessionData.session.user.id;
+            }
+          } catch(authErr) {}
+
           const { data: insertedOrder, error: orderErr } = await client.from('orders').insert([orderData]).select().single();
           if (orderErr) console.error('Order insert error:', orderErr);
           if (insertedOrder && cart.length > 0) {
