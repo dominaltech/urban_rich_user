@@ -1,0 +1,38 @@
+/* --- TEMPORARY SERVICE HOLD --- */
+html, body {
+    overflow: hidden !important;
+    height: 100% !important;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #f8fafc;
+    z-index: 999998;
+}
+
+body::after {
+    content: "⚠️ Service Temporarily Suspended \A\A This website is temporarily offline for administrative review. Please contact the administrator for reactivation inquiries.";
+    white-space: pre-wrap;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #ffffff;
+    color: #1e293b;
+    padding: 35px 25px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    text-align: center;
+    max-width: 440px;
+    width: 90%;
+    z-index: 999999;
+}
