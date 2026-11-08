@@ -44,7 +44,7 @@ self.addEventListener('fetch', (event) => {
   // 1. DEDICATED MEDIA CACHE (Cache-First for Images & Supabase Storage Assets)
   const isImageOrMedia = event.request.destination === 'image' || 
     url.pathname.match(/\.(webp|jpg|jpeg|png|gif|svg|avif)$/i) || 
-    url.hostname.includes('supabase.co') && url.pathname.includes('/storage/v1/object/public/');
+    (url.hostname.includes('supabase.co') && url.pathname.includes('/storage/v1/object/public/'));
 
   if (isImageOrMedia) {
     event.respondWith(
@@ -55,9 +55,9 @@ self.addEventListener('fetch', (event) => {
             return cachedResponse;
           }
 
-          // Fetch single time and store in media cache
+          // Fetch single time and store in media cache (including cross-origin opaque responses)
           return fetch(event.request).then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
+            if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
               mediaCache.put(event.request, networkResponse.clone());
             }
             return networkResponse;

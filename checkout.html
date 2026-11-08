@@ -161,7 +161,7 @@
     const cart = window.UR_CART.get();
     let discountRowHtml = '';
     if (totals.discount > 0 && totals.couponCode) {
-      const isPct = (totals.discountType === 'PERCENTAGE');
+      const isPct = (totals.discountType || '').toUpperCase().includes('PERCENT');
       const tag = isPct ? `${totals.discountValue}% OFF` : `₹${totals.discountValue} OFF`;
       discountRowHtml = `
         <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:8px;color:#10b981;font-weight:700;">
@@ -193,6 +193,10 @@
     if (!container || !window.UR_COUPON) return;
 
     try {
+      if (!window.UR_COUPON.get() && typeof window.UR_COUPON.autoApplyIfAvailable === 'function') {
+        await window.UR_COUPON.autoApplyIfAvailable();
+      }
+
       const coupon = await window.UR_COUPON.fetchProductBannerCoupon();
       const applied = window.UR_COUPON.get();
 
@@ -207,7 +211,7 @@
       const activeObj = applied || coupon;
       activeCheckoutCoupon = activeObj;
 
-      const isPct = (activeObj.discount_type === 'PERCENTAGE');
+      const isPct = (activeObj.discount_type || '').toUpperCase().includes('PERCENT');
       const discountStr = isPct ? `${parseFloat(activeObj.discount_value)}% OFF` : `₹${parseFloat(activeObj.discount_value).toFixed(0)} FLAT OFF`;
       const isApplied = window.UR_COUPON.isApplied(activeObj.code);
 
@@ -311,8 +315,9 @@
         },
         subtotal: totals.subtotal,
         discount_amount: totals.discount || 0,
+        coupon_code: totals.couponCode || null,
         shipping_fee: totals.shippingFee,
-        total_amount: totals.total,
+        total_amount: Math.round(totals.total * 100) / 100,
         payment_status: 'PENDING',
         order_status: 'PLACED'
       };
@@ -375,7 +380,8 @@
       }).catch(e => console.log('Pending push dispatch bypass:', e));
 
       // Do NOT clear cart yet! Cart is preserved until payment is confirmed on order-success.html
-      window.location.href = `payment.html?order_id=${orderNum}&amount=${totals.total}`;
+      const finalAmountStr = (Math.round(totals.total * 100) / 100).toFixed(2);
+      window.location.href = `payment.html?order_id=${orderNum}&amount=${finalAmountStr}`;
     });
   });
 </script>

@@ -200,8 +200,18 @@ module.exports = async (req, res) => {
         order: updatedOrder || currentDbOrder,
         cashfree: cfData
       });
+    } else if (cfStatus === 'ACTIVE' && !is_explicit_cancel) {
+      // Payment attempt may still be processing on bank/UPI side, do not prematurely cancel DB order
+      return res.status(200).json({
+        success: false,
+        payment_status: 'PENDING',
+        order_status: 'PLACED',
+        order: currentDbOrder,
+        cashfree: cfData,
+        message: 'Payment verification is still processing.'
+      });
     } else {
-      // Payment was cancelled / abandoned / not completed
+      // Payment was definitively cancelled, expired, or failed
       const updatedOrder = await updateOrderInDb('FAILED', 'CANCELLED');
       await notifyAdminOnce(
         'PAYMENT_CANCELLED',

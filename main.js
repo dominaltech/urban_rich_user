@@ -212,7 +212,8 @@
         const minOrder = parseFloat(coupon.min_order_value || 0);
         if (subtotal >= minOrder) {
           couponCode = coupon.code;
-          discountType = coupon.discount_type || 'PERCENTAGE';
+          const rawType = (coupon.discount_type || 'PERCENTAGE').toUpperCase();
+          discountType = rawType.includes('PERCENT') ? 'PERCENTAGE' : 'FIXED';
           discountValue = parseFloat(coupon.discount_value || 0);
 
           if (discountType === 'PERCENTAGE') {
@@ -353,16 +354,19 @@
       }
 
       if (couponData) {
+        const rawType = (couponData.discount_type || 'PERCENTAGE').toUpperCase();
+        const stdType = rawType.includes('PERCENT') ? 'PERCENTAGE' : 'FIXED';
         const couponObj = {
-          code: couponData.code,
+          code: couponData.code.toUpperCase(),
           title: couponData.title,
-          discount_type: couponData.discount_type || 'PERCENTAGE',
+          discount_type: stdType,
           discount_value: parseFloat(couponData.discount_value || 0),
           min_order_value: parseFloat(couponData.min_order_value || 0),
-          max_discount: couponData.max_discount ? parseFloat(couponData.max_discount) : null
+          max_discount: couponData.max_discount ? parseFloat(couponData.max_discount) : null,
+          auto_apply: !!couponData.auto_apply
         };
         this.set(couponObj);
-        const desc = couponObj.discount_type === 'PERCENTAGE' ? `${couponObj.discount_value}% OFF` : `₹${couponObj.discount_value} OFF`;
+        const desc = stdType === 'PERCENTAGE' ? `${couponObj.discount_value}% OFF` : `₹${couponObj.discount_value} OFF`;
         if (typeof window.UR_TOAST === 'function') {
           window.UR_TOAST(`🎉 Coupon ${couponObj.code} applied! (${desc})`);
         }
@@ -373,6 +377,37 @@
         }
         return { success: false, message: 'Invalid or expired coupon code' };
       }
+    },
+    autoApplyIfAvailable: async function() {
+      if (this.get()) return this.get();
+      try {
+        const client = window.urSupabase || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.UR_CONFIG.SUPABASE_URL, window.UR_CONFIG.SUPABASE_ANON_KEY) : null);
+        if (!client) return null;
+        const { data } = await client
+          .from('coupons')
+          .select('*')
+          .eq('is_active', true)
+          .or('auto_apply.eq.true,show_product_banner.eq.true')
+          .order('discount_value', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (data) {
+          const rawType = (data.discount_type || 'PERCENTAGE').toUpperCase();
+          const stdType = rawType.includes('PERCENT') ? 'PERCENTAGE' : 'FIXED';
+          const couponObj = {
+            code: data.code.toUpperCase(),
+            title: data.title,
+            discount_type: stdType,
+            discount_value: parseFloat(data.discount_value || 0),
+            min_order_value: parseFloat(data.min_order_value || 0),
+            max_discount: data.max_discount ? parseFloat(data.max_discount) : null,
+            auto_apply: true
+          };
+          this.set(couponObj);
+          return couponObj;
+        }
+      } catch(e) {}
+      return null;
     },
     toggle: async function(code) {
       const current = this.get();
@@ -393,6 +428,74 @@
     isApplied: function(code) {
       const current = this.get();
       return !!(current && current.code === (code || '').toUpperCase());
+    }
+  };
+
+  // 3.8 ULTRA-LOW EGRESS & INCREMENTAL SYNC CATALOG ENGINE
+  window.UR_CATALOG = {
+    PAGE_SIZE: 10,
+    getCache: function() {
+      try {
+        const raw = localStorage.getItem('ur_catalog_cache');
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    },
+    setCache: function(products, syncTime) {
+      try {
+        localStorage.setItem('ur_catalog_cache', JSON.stringify(products));
+        if (syncTime) localStorage.setItem('ur_catalog_sync_time', syncTime);
+      } catch (e) {}
+    },
+    // Micro 50-byte ping to check if catalog was modified
+    checkNeedsRefresh: async function() {
+      const client = window.urSupabase || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.UR_CONFIG.SUPABASE_URL, window.UR_CONFIG.SUPABASE_ANON_KEY) : null);
+      if (!client) return false;
+      try {
+        const { data, error } = await client
+          .from('products')
+          .select('updated_at')
+          .eq('status', 'published')
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error || !data) return false;
+        const lastLocalSync = localStorage.getItem('ur_catalog_sync_time');
+        return !lastLocalSync || new Date(data.updated_at) > new Date(lastLocalSync);
+      } catch (e) {
+        return false;
+      }
+    },
+    // Range query (fetches only 10 items at a time)
+    fetchBatch: async function(options = {}) {
+      const { start = 0, limit = 10, categoryId = null, categorySlug = null } = options;
+      const client = window.urSupabase || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.UR_CONFIG.SUPABASE_URL, window.UR_CONFIG.SUPABASE_ANON_KEY) : null);
+      if (!client) return { products: [], hasMore: false };
+
+      try {
+        let query = client
+          .from('products')
+          .select('id, name, price, mrp, main_image, is_new_arrival, category_id, updated_at, categories(id, slug, name)')
+          .eq('status', 'published')
+          .order('created_at', { ascending: false })
+          .range(start, start + limit - 1);
+
+        if (categoryId) {
+          query = query.eq('category_id', categoryId);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        const products = data || [];
+        return {
+          products,
+          hasMore: products.length === limit
+        };
+      } catch (err) {
+        console.error('UR_CATALOG fetchBatch error:', err);
+        return { products: [], hasMore: false };
+      }
     }
   };
 

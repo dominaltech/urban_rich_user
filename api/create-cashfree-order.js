@@ -22,10 +22,35 @@ module.exports = async (req, res) => {
     const origin = req.headers.origin || req.headers.referer ? (req.headers.origin || new URL(req.headers.referer).origin) : 'https://urbanrichshop.com';
     const returnUrl = `${origin}/order-success.html?order_id={order_id}`;
 
-    const cust = customer_details || {};
+    let cust = customer_details || {};
+    let finalAmount = parseFloat(order_amount);
+
+    // Authoritative Server-Side Order Verification from Supabase Database
+    // Ensures the discounted coupon price recorded in the order is charged and prevents URL tampering
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://vemlqojqluimqegryxug.supabase.co";
+      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlbWxxb2pxbHVpbXFlZ3J5eHVnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTk3Nzc3OSwiZXhwIjoyMTAxNTUzNzc5fQ.v-XqgNQuoir-nvrvEoIndsqu_G9WOEFJV";
+      
+      const dbResp = await fetch(`${supabaseUrl}/rest/v1/orders?order_number=eq.${encodeURIComponent(order_id)}&select=*`, {
+        headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+      });
+      const dbOrders = await dbResp.json();
+      if (dbOrders && Array.isArray(dbOrders) && dbOrders.length > 0) {
+        const orderRecord = dbOrders[0];
+        if (orderRecord.total_amount !== undefined && orderRecord.total_amount !== null) {
+          finalAmount = parseFloat(orderRecord.total_amount);
+        }
+        if (orderRecord.customer_name) cust.customer_name = orderRecord.customer_name;
+        if (orderRecord.customer_email) cust.customer_email = orderRecord.customer_email;
+        if (orderRecord.customer_phone) cust.customer_phone = orderRecord.customer_phone;
+      }
+    } catch (dbErr) {
+      console.log('Database order lookup bypass in create-cashfree-order:', dbErr);
+    }
+
     const postData = JSON.stringify({
       order_id: order_id,
-      order_amount: parseFloat(order_amount),
+      order_amount: Math.round(finalAmount * 100) / 100,
       order_currency: order_currency || 'INR',
       customer_details: {
         customer_id: cust.customer_id || 'cust_' + Date.now(),

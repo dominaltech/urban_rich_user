@@ -569,12 +569,26 @@
         isPaymentCancelled = false;
       } else if (!isPaymentCancelled) {
         try {
-          const verifyRes = await fetch('/api/verify-cashfree-order', {
+          let verifyRes = await fetch('/api/verify-cashfree-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ order_id: orderId })
           });
-          const verifyData = await verifyRes.json();
+          let verifyData = await verifyRes.json();
+          
+          // If still pending, wait 2.5 seconds and do a second check before deciding
+          if (verifyData && verifyData.payment_status === 'PENDING') {
+            await new Promise(r => setTimeout(r, 2500));
+            try {
+              verifyRes = await fetch('/api/verify-cashfree-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order_id: orderId })
+              });
+              verifyData = await verifyRes.json();
+            } catch(retryErr) {}
+          }
+
           if (verifyData && (verifyData.success || verifyData.payment_status === 'PAID')) {
             isPaymentSuccess = true;
             isPaymentCancelled = false;
@@ -616,10 +630,16 @@
         paymentBadge.textContent = 'PAID ONLINE ✓';
         totalPaidVal.style.color = '#34d399';
 
-        // Clear cart upon confirmed success
+        // Clear cart & applied coupon upon confirmed success
         if (window.UR_CART) {
           window.UR_CART.set([]);
         }
+        if (window.UR_COUPON) {
+          window.UR_COUPON.set(null);
+        }
+        try {
+          localStorage.removeItem('ur_applied_coupon');
+        } catch(e) {}
 
         actionsContainer.innerHTML = `
           <button class="btn-action btn-secondary" onclick="window.print()">

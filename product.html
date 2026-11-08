@@ -595,7 +595,7 @@
     });
   }
 
-  function buyNowTrigger() {
+  async function buyNowTrigger() {
     if (!currentProduct) return;
     if (!selectedSize) {
       if (typeof window.showToast === 'function') {
@@ -604,6 +604,10 @@
         alert('Please select an available size first.');
       }
       return;
+    }
+    // Auto-apply active PDP coupon if available and no other coupon applied
+    if (activePDPCoupon && window.UR_COUPON && !window.UR_COUPON.get()) {
+      await window.UR_COUPON.apply(activePDPCoupon.code);
     }
     addToCartTrigger();
     window.location.href = 'checkout.html';
@@ -634,7 +638,7 @@
       }
 
       activePDPCoupon = coupon;
-      const isPct = (coupon.discount_type === 'PERCENTAGE');
+      const isPct = (coupon.discount_type || '').toUpperCase().includes('PERCENT');
       const discountStr = isPct ? `${parseFloat(coupon.discount_value)}% OFF` : `₹${parseFloat(coupon.discount_value).toFixed(0)} FLAT OFF`;
       const isApplied = window.UR_COUPON.isApplied(coupon.code);
 
@@ -672,7 +676,7 @@
     if (!currentProduct || !priceVal) return;
 
     if (activePDPCoupon && window.UR_COUPON && window.UR_COUPON.isApplied(activePDPCoupon.code)) {
-      const isPct = (activePDPCoupon.discount_type === 'PERCENTAGE');
+      const isPct = (activePDPCoupon.discount_type || '').toUpperCase().includes('PERCENT');
       let discounted = currentProduct.price;
       if (isPct) {
         discounted = Math.max(0, currentProduct.price * (1 - (activePDPCoupon.discount_value / 100)));

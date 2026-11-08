@@ -171,6 +171,11 @@
       <div class="skeleton skeleton-card"></div>
       <div class="skeleton skeleton-card"></div>
     </div>
+
+    <!-- INFINITE SCROLL SENTINEL (LOADS 10 ITEMS AT A TIME) -->
+    <div id="infiniteScrollSentinel" style="height: 50px; margin: 24px 0; display: flex; align-items: center; justify-content: center;">
+      <span id="infiniteScrollSpinner" style="display: none; font-size: 13px; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;">LOADING MORE STREETWEAR...</span>
+    </div>
   </div>
 </main>
 
@@ -268,6 +273,11 @@
     }
   }
 
+  const PAGE_SIZE = 10;
+  let visibleCount = PAGE_SIZE;
+  let filteredProducts = [];
+  let scrollObserver = null;
+
   async function loadShopData() {
     const grid = document.getElementById('shopGrid');
     const client = window.urSupabase || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.UR_CONFIG.SUPABASE_URL, window.UR_CONFIG.SUPABASE_ANON_KEY) : null);
@@ -276,18 +286,37 @@
     try {
       await loadShopCategories();
 
+      // 1. Instant Cache-First Local Load (0 Supabase Data Egress)
+      const cached = window.UR_CATALOG ? window.UR_CATALOG.getCache() : null;
+      if (cached && cached.length > 0) {
+        rawProducts = cached;
+        filterProducts();
+        
+        // 2. Micro 50-byte check: Only fetch if database actually changed
+        const needsRefresh = window.UR_CATALOG ? await window.UR_CATALOG.checkNeedsRefresh() : true;
+        if (!needsRefresh) {
+          return;
+        }
+      }
+
+      // 3. Delta/Catalog query when cache missed or catalog updated
       const { data: products, error } = await client
         .from('products')
-        .select('id, name, price, mrp, main_image, is_new_arrival, category_id, categories(id, slug, name)')
+        .select('id, name, price, mrp, main_image, is_new_arrival, category_id, updated_at, categories(id, slug, name)')
         .eq('status', 'published')
         .order('created_at', { ascending: false });
 
       if (error || !products) {
-        grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px 0;">No products available.</p>';
+        if (!rawProducts || rawProducts.length === 0) {
+          grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px 0;">No products available.</p>';
+        }
         return;
       }
 
       rawProducts = products;
+      if (window.UR_CATALOG) {
+        window.UR_CATALOG.setCache(products, new Date().toISOString());
+      }
       filterProducts();
     } catch(e) {
       console.error('loadShopData error:', e);
@@ -324,10 +353,9 @@
   }
 
   function filterProducts() {
-    const grid = document.getElementById('shopGrid');
     const searchVal = (document.getElementById('shopSearch').value || '').toLowerCase().trim();
 
-    let filtered = rawProducts.filter(p => {
+    filteredProducts = rawProducts.filter(p => {
       const catSlug = p.categories ? p.categories.slug : '';
       const catId = p.category_id || (p.categories ? p.categories.id : '');
       const matchesCategory = activeCategorySlug === 'all' || 
@@ -337,14 +365,23 @@
       return matchesCategory && matchesSearch;
     });
 
-    document.getElementById('productCountBadge').textContent = `${filtered.length} Products Found`;
+    document.getElementById('productCountBadge').textContent = `${filteredProducts.length} Products Found`;
+    visibleCount = PAGE_SIZE; // reset batch to 10
+    renderVisibleBatch();
+    setupInfiniteScrollObserver();
+  }
 
-    if (filtered.length === 0) {
+  function renderVisibleBatch() {
+    const grid = document.getElementById('shopGrid');
+    if (filteredProducts.length === 0) {
       grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px 0;">No matching products found.</p>';
+      const spinner = document.getElementById('infiniteScrollSpinner');
+      if (spinner) spinner.style.display = 'none';
       return;
     }
 
-    grid.innerHTML = filtered.map(p => `
+    const itemsToRender = filteredProducts.slice(0, visibleCount);
+    grid.innerHTML = itemsToRender.map(p => `
       <div class="product-card">
         <div class="prod-image-wrap">
           ${p.is_new_arrival ? '<span class="prod-tag">NEW</span>' : ''}
@@ -363,6 +400,29 @@
         </div>
       </div>
     `).join('');
+
+    const spinner = document.getElementById('infiniteScrollSpinner');
+    if (spinner) {
+      spinner.style.display = visibleCount < filteredProducts.length ? 'block' : 'none';
+    }
+  }
+
+  function setupInfiniteScrollObserver() {
+    const sentinel = document.getElementById('infiniteScrollSentinel');
+    if (!sentinel) return;
+
+    if (scrollObserver) scrollObserver.disconnect();
+
+    scrollObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && visibleCount < filteredProducts.length) {
+          visibleCount += PAGE_SIZE; // increment by 10
+          renderVisibleBatch();
+        }
+      });
+    }, { rootMargin: '250px' });
+
+    scrollObserver.observe(sentinel);
   }
 
   document.addEventListener('DOMContentLoaded', function() {

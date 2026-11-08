@@ -224,7 +224,7 @@
     if (totals.discount > 0 && totals.couponCode) {
       if (discountRow) discountRow.style.display = 'flex';
       if (discountLabel) {
-        const isPct = (totals.discountType === 'PERCENTAGE');
+        const isPct = (totals.discountType || '').toUpperCase().includes('PERCENT');
         const tag = isPct ? `${totals.discountValue}% OFF` : `₹${totals.discountValue} OFF`;
         discountLabel.textContent = `Coupon (${totals.couponCode} — ${tag})`;
       }
@@ -243,6 +243,11 @@
     if (!container || !window.UR_COUPON) return;
 
     try {
+      // Auto-apply active coupon if none applied yet
+      if (!window.UR_COUPON.get() && typeof window.UR_COUPON.autoApplyIfAvailable === 'function') {
+        await window.UR_COUPON.autoApplyIfAvailable();
+      }
+
       const coupon = await window.UR_COUPON.fetchProductBannerCoupon();
       const applied = window.UR_COUPON.get();
 
@@ -257,7 +262,7 @@
       const activeObj = applied || coupon;
       activeCartCoupon = activeObj;
 
-      const isPct = (activeObj.discount_type === 'PERCENTAGE');
+      const isPct = (activeObj.discount_type || '').toUpperCase().includes('PERCENT');
       const discountStr = isPct ? `${parseFloat(activeObj.discount_value)}% OFF` : `₹${parseFloat(activeObj.discount_value).toFixed(0)} FLAT OFF`;
       const isApplied = window.UR_COUPON.isApplied(activeObj.code);
 
