@@ -22,3 +22,4 @@ CREATE INDEX IF NOT EXISTS idx_products_status_created_at ON public.products(sta
 CREATE INDEX IF NOT EXISTS idx_orders_order_number ON public.orders(order_number);
 CREATE INDEX IF NOT EXISTS idx_orders_customer_phone ON public.orders(customer_phone);
 CREATE INDEX IF NOT EXISTS idx_coupons_active_code ON public.coupons(is_active, code);
+

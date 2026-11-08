@@ -362,8 +362,7 @@
           discount_type: stdType,
           discount_value: parseFloat(couponData.discount_value || 0),
           min_order_value: parseFloat(couponData.min_order_value || 0),
-          max_discount: couponData.max_discount ? parseFloat(couponData.max_discount) : null,
-          auto_apply: !!couponData.auto_apply
+          max_discount: couponData.max_discount ? parseFloat(couponData.max_discount) : null
         };
         this.set(couponObj);
         const desc = stdType === 'PERCENTAGE' ? `${couponObj.discount_value}% OFF` : `₹${couponObj.discount_value} OFF`;
@@ -387,7 +386,7 @@
           .from('coupons')
           .select('*')
           .eq('is_active', true)
-          .or('auto_apply.eq.true,show_product_banner.eq.true')
+          .or('show_product_banner.eq.true,show_home_banner.eq.true')
           .order('discount_value', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -400,8 +399,7 @@
             discount_type: stdType,
             discount_value: parseFloat(data.discount_value || 0),
             min_order_value: parseFloat(data.min_order_value || 0),
-            max_discount: data.max_discount ? parseFloat(data.max_discount) : null,
-            auto_apply: true
+            max_discount: data.max_discount ? parseFloat(data.max_discount) : null
           };
           this.set(couponObj);
           return couponObj;
