@@ -130,6 +130,10 @@
   </div>
 </div>
 
+<!-- DYNAMIC SHOPPING PAGE PROMOTIONAL BANNER (COUPON OR FESTIVE OFFER) -->
+<section class="rakhi-home-strip" id="shopEventStrip" style="display: none;"></section>
+<section class="offer-banner-section" id="shopOfferStrip" style="display: none;"></section>
+
 <!-- SEARCH & CATEGORY PILLS BAR -->
 <div style="background: var(--bg); border-bottom: 1px solid var(--border); padding: 20px 24px 10px;">
   <div style="max-width: var(--container-max); margin: 0 auto;">
@@ -425,6 +429,12 @@
     scrollObserver.observe(sentinel);
   }
 
+  function loadShopPromotions() {
+    if (window.UR_PROMOS) {
+      window.UR_PROMOS.render({ page: 'shop' });
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const searchQuery = urlParams.get('search');
@@ -437,7 +447,11 @@
       activeCategorySlug = catQuery;
     }
     loadShopData();
-    document.addEventListener('urSupabaseReady', loadShopData);
+    loadShopPromotions();
+    document.addEventListener('urSupabaseReady', function() {
+      loadShopData();
+      loadShopPromotions();
+    });
   });
 </script>
 </body>

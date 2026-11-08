@@ -55,3 +55,4 @@ INSERT INTO public.offer_banners (
   false
 )
 ON CONFLICT DO NOTHING;
+

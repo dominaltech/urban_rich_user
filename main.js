@@ -454,6 +454,209 @@
     }
   };
 
+  // 3.7 UNIFIED PROMOTIONAL ROUTER (MAIN & SHOPPING PAGES)
+  window.UR_PROMOS = {
+    escapeHtml: function(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+      });
+    },
+
+    fetchPromoCoupon: async function() {
+      const client = window.urSbClient || window.urSupabase || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.UR_CONFIG.SUPABASE_URL, window.UR_CONFIG.SUPABASE_ANON_KEY) : null);
+      if (!client) return null;
+      try {
+        const { data } = await client
+          .from('coupons')
+          .select('*')
+          .eq('is_active', true)
+          .eq('show_home_banner', true)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (data) return data;
+
+        const fallback = await client
+          .from('coupons')
+          .select('*')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        return fallback.data || null;
+      } catch (err) {
+        return null;
+      }
+    },
+
+    determineDisplay: function(page, coupon, offer) {
+      const isOfferActive = !!(offer && offer.is_active);
+      const isCouponActive = !!(coupon && coupon.is_active);
+
+      if (isOfferActive && isCouponActive) {
+        // Both chosen: Main page shows Offer Banner; Shopping page shows Coupon Banner on top
+        return page === 'home' ? 'offer' : 'coupon';
+      } else if (isOfferActive && !isCouponActive) {
+        // Only Offer chosen: Both Main and Shopping show Offer Banner
+        return 'offer';
+      } else if (!isOfferActive && isCouponActive) {
+        // Only Coupon chosen: Both Main and Shopping show Coupon Banner
+        return 'coupon';
+      }
+      return null;
+    },
+
+    render: async function(options) {
+      const page = (options && options.page) || 'home';
+      const couponStripId = (options && options.couponStripId) || (page === 'home' ? 'homeEventStrip' : 'shopEventStrip');
+      const offerStripId = (options && options.offerStripId) || (page === 'home' ? 'homeOfferStrip' : 'shopOfferStrip');
+
+      const couponStrip = document.getElementById(couponStripId);
+      const offerStrip = document.getElementById(offerStripId);
+
+      const [coupon, offer] = await Promise.all([
+        this.fetchPromoCoupon(),
+        (window.UR_OFFER_BANNER ? window.UR_OFFER_BANNER.fetchActive() : Promise.resolve(null))
+      ]);
+
+      const displayType = this.determineDisplay(page, coupon, offer);
+
+      if (displayType === 'offer' && offer && offerStrip) {
+        if (couponStrip) {
+          couponStrip.style.display = 'none';
+          couponStrip.innerHTML = '';
+        }
+        this.renderOffer(offer, offerStrip);
+      } else if (displayType === 'coupon' && coupon && couponStrip) {
+        if (offerStrip) {
+          offerStrip.style.display = 'none';
+          offerStrip.innerHTML = '';
+        }
+        this.renderCoupon(coupon, couponStrip, page);
+      } else {
+        if (couponStrip) {
+          couponStrip.style.display = 'none';
+          couponStrip.innerHTML = '';
+        }
+        if (offerStrip) {
+          offerStrip.style.display = 'none';
+          offerStrip.innerHTML = '';
+        }
+      }
+    },
+
+    renderOffer: function(banner, container) {
+      if (!container || !banner) return;
+      const items = Array.isArray(banner.items) ? banner.items : [];
+      const theme = banner.theme || 'diwali';
+
+      container.className = `offer-banner-section theme-${theme}`;
+      container.style.display = 'block';
+
+      const itemsHtml = items.map(function(item) {
+        const name = item.name || '';
+        const price = item.price || '';
+        const qty = item.qty || '';
+        return `
+          <div class="offer-combo-chip">
+            <div class="offer-combo-icon">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            </div>
+            <div class="offer-combo-details">
+              <span class="offer-combo-name">${window.UR_PROMOS.escapeHtml(name)}</span>
+              <div class="offer-combo-price-line">
+                <span class="offer-combo-price">₹${window.UR_PROMOS.escapeHtml(price)}</span>
+                <span class="offer-combo-qty">/ ${window.UR_PROMOS.escapeHtml(qty)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      let contactHtml = '';
+      if (banner.show_contact && banner.contact_number) {
+        const phone = window.UR_PROMOS.escapeHtml(banner.contact_number);
+        const cleanPhone = phone.replace(/[^0-9+]/g, '');
+        contactHtml = `
+          <div class="offer-contact-wrap">
+            <a href="tel:${cleanPhone}" class="offer-call-action" title="Call ${phone} to order">
+              <div class="offer-call-icon-bubble">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+              </div>
+              <div class="offer-call-text">
+                <span class="offer-call-sub">ORDER BY CALL</span>
+                <span class="offer-call-num">${phone}</span>
+              </div>
+            </a>
+          </div>
+        `;
+      }
+
+      container.innerHTML = `
+        <div class="container">
+          <div class="offer-banner-box">
+            <div class="offer-banner-header">
+              <div class="offer-badge-pill">
+                <svg class="offer-sparkle-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+                  <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/>
+                </svg>
+                <span>${window.UR_PROMOS.escapeHtml(banner.badge_tag || '✨ FESTIVE OFFER')}</span>
+              </div>
+              <h3 class="offer-banner-title">${window.UR_PROMOS.escapeHtml(banner.title || 'Special Offer')}</h3>
+            </div>
+            <div class="offer-items-scroll">
+              ${itemsHtml}
+            </div>
+            ${contactHtml}
+          </div>
+        </div>
+      `;
+    },
+
+    renderCoupon: function(coupon, container, page) {
+      if (!container || !coupon) return;
+      const isPct = (coupon.discount_type || '').toUpperCase().includes('PERCENT');
+      const discountStr = isPct ? `${parseFloat(coupon.discount_value)}% OFF` : `₹${parseFloat(coupon.discount_value).toFixed(0)} OFF`;
+      const isApplied = window.UR_COUPON ? window.UR_COUPON.isApplied(coupon.code) : false;
+
+      container.className = `rakhi-home-strip ${isApplied ? 'applied' : ''}`;
+      container.style.display = 'block';
+
+      container.innerHTML = `
+        <div class="container">
+          <div class="rakhi-strip-inner">
+            <div class="rakhi-strip-left">
+              <div class="rakhi-badge-pill">${window.UR_PROMOS.escapeHtml(coupon.banner_tag || '✨ SPECIAL EVENT OFFER')}</div>
+              <div class="rakhi-strip-text">
+                <span class="rakhi-strip-title">${window.UR_PROMOS.escapeHtml(coupon.banner_message || 'FLAT ' + discountStr + ' ON ALL ORDERS')}</span>
+                <span class="rakhi-strip-sub">Use coupon code <strong class="rakhi-strip-code">${window.UR_PROMOS.escapeHtml(coupon.code)}</strong> at checkout</span>
+              </div>
+            </div>
+            <div class="rakhi-strip-right">
+              <button class="rakhi-strip-btn" onclick="window.UR_PROMOS.toggleCoupon('${window.UR_PROMOS.escapeHtml(coupon.code)}', '${page}')">
+                <span>${isApplied ? `✓ ${discountStr} APPLIED (${coupon.code})` : `⚡ APPLY ${discountStr}`}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
+    toggleCoupon: async function(code, page) {
+      if (!window.UR_COUPON) return;
+      const isApplied = window.UR_COUPON.isApplied(code);
+      if (isApplied) {
+        window.UR_COUPON.remove();
+      } else {
+        await window.UR_COUPON.apply(code);
+      }
+      this.render({ page: page || 'home' });
+    }
+  };
+
   // 3.8 ULTRA-LOW EGRESS & INCREMENTAL SYNC CATALOG ENGINE
   window.UR_CATALOG = {
     PAGE_SIZE: 10,
