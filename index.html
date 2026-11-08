@@ -220,6 +220,11 @@
     <!-- Injected dynamically via loadHomeEventBanner() -->
   </section>
 
+  <!-- DYNAMIC FESTIVE COMBO OFFER BANNER (MANAGED VIA ADMIN PANEL) -->
+  <section class="offer-banner-section" id="homeOfferStrip" style="display: none;">
+    <!-- Injected dynamically via loadHomeOfferBanner() -->
+  </section>
+
   <!-- CATEGORY TILES -->
   <section class="section">
     <div class="container">
@@ -553,17 +558,125 @@
 
   let currentActiveHomeCoupon = null;
 
+  function escapeOfferHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, function(m) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+    });
+  }
+
+  async function loadHomeOfferBanner() {
+    const offerStrip = document.getElementById('homeOfferStrip');
+    if (!offerStrip || !window.UR_OFFER_BANNER) return;
+
+    try {
+      const banner = await window.UR_OFFER_BANNER.fetchActive();
+      if (!banner || !banner.is_active) {
+        offerStrip.style.display = 'none';
+        offerStrip.innerHTML = '';
+        return;
+      }
+
+      // Mutual exclusivity safeguard: if coupon banner is visible, hide offer banner
+      const couponStrip = document.getElementById('homeEventStrip');
+      if (couponStrip && couponStrip.style.display !== 'none' && currentActiveHomeCoupon) {
+        offerStrip.style.display = 'none';
+        offerStrip.innerHTML = '';
+        return;
+      }
+
+      const items = Array.isArray(banner.items) ? banner.items : [];
+      const theme = banner.theme || 'diwali';
+
+      offerStrip.className = `offer-banner-section theme-${theme}`;
+      offerStrip.style.display = 'block';
+
+      const itemsHtml = items.map(function(item) {
+        const name = item.name || '';
+        const price = item.price || '';
+        const qty = item.qty || '';
+        return `
+          <div class="offer-combo-chip">
+            <div class="offer-combo-icon">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            </div>
+            <div class="offer-combo-details">
+              <span class="offer-combo-name">${escapeOfferHtml(name)}</span>
+              <div class="offer-combo-price-line">
+                <span class="offer-combo-price">₹${escapeOfferHtml(price)}</span>
+                <span class="offer-combo-qty">/ ${escapeOfferHtml(qty)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      let contactHtml = '';
+      if (banner.show_contact && banner.contact_number) {
+        const phone = escapeOfferHtml(banner.contact_number);
+        const cleanPhone = phone.replace(/[^0-9+]/g, '');
+        contactHtml = `
+          <div class="offer-contact-wrap">
+            <a href="tel:${cleanPhone}" class="offer-call-action" title="Call ${phone} to order">
+              <div class="offer-call-icon-bubble">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+              </div>
+              <div class="offer-call-text">
+                <span class="offer-call-sub">ORDER BY CALL</span>
+                <span class="offer-call-num">${phone}</span>
+              </div>
+            </a>
+          </div>
+        `;
+      }
+
+      offerStrip.innerHTML = `
+        <div class="container">
+          <div class="offer-banner-box">
+            <div class="offer-banner-header">
+              <div class="offer-badge-pill">
+                <svg class="offer-sparkle-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+                  <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/>
+                </svg>
+                <span>${escapeOfferHtml(banner.badge_tag || '✨ FESTIVE OFFER')}</span>
+              </div>
+              <h3 class="offer-banner-title">${escapeOfferHtml(banner.title || 'Special Offer')}</h3>
+            </div>
+            <div class="offer-items-scroll">
+              ${itemsHtml}
+            </div>
+            ${contactHtml}
+          </div>
+        </div>
+      `;
+    } catch(err) {
+      console.error('loadHomeOfferBanner error:', err);
+      offerStrip.style.display = 'none';
+    }
+  }
+
   async function loadHomeEventBanner() {
-    const strip = document.getElementById('homeEventStrip');
-    if (!strip || !window.UR_COUPON) return;
+    const couponStrip = document.getElementById('homeEventStrip');
+    const offerStrip = document.getElementById('homeOfferStrip');
+    if (!couponStrip || !window.UR_COUPON) return;
 
     try {
       const coupon = await window.UR_COUPON.fetchHomeBannerCoupon();
       if (!coupon || !coupon.is_active || !coupon.show_home_banner) {
-        strip.style.display = 'none';
-        strip.innerHTML = '';
+        couponStrip.style.display = 'none';
+        couponStrip.innerHTML = '';
         currentActiveHomeCoupon = null;
+        // Mutual exclusivity: If coupon banner is inactive, show offer banner if enabled
+        await loadHomeOfferBanner();
         return;
+      }
+
+      // Coupon banner is active: hide offer banner to enforce mutual exclusivity
+      if (offerStrip) {
+        offerStrip.style.display = 'none';
+        offerStrip.innerHTML = '';
       }
 
       currentActiveHomeCoupon = coupon;
@@ -571,9 +684,9 @@
       const discountStr = isPct ? `${parseFloat(coupon.discount_value)}% OFF` : `₹${parseFloat(coupon.discount_value).toFixed(0)} OFF`;
       const isApplied = window.UR_COUPON.isApplied(coupon.code);
 
-      strip.style.display = 'block';
-      strip.className = `rakhi-home-strip ${isApplied ? 'applied' : ''}`;
-      strip.innerHTML = `
+      couponStrip.style.display = 'block';
+      couponStrip.className = `rakhi-home-strip ${isApplied ? 'applied' : ''}`;
+      couponStrip.innerHTML = `
         <div class="container">
           <div class="rakhi-strip-inner">
             <div class="rakhi-strip-left">
@@ -593,7 +706,8 @@
       `;
     } catch(err) {
       console.error('loadHomeEventBanner error:', err);
-      strip.style.display = 'none';
+      couponStrip.style.display = 'none';
+      await loadHomeOfferBanner();
     }
   }
 

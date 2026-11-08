@@ -429,6 +429,31 @@
     }
   };
 
+  // 3.6 DYNAMIC FESTIVE OFFER BANNER ENGINE (COMBO DEALS & CONTACT)
+  window.UR_OFFER_BANNER = {
+    fetchActive: async function() {
+      const client = window.urSupabase || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.UR_CONFIG.SUPABASE_URL, window.UR_CONFIG.SUPABASE_ANON_KEY) : null);
+      if (!client) return null;
+      try {
+        const { data, error } = await client
+          .from('offer_banners')
+          .select('*')
+          .eq('is_active', true)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) {
+          console.warn('offer_banners fetch notice:', error.message || error);
+          return null;
+        }
+        return data || null;
+      } catch (err) {
+        console.error('fetchActive offer_banners error:', err);
+        return null;
+      }
+    }
+  };
+
   // 3.8 ULTRA-LOW EGRESS & INCREMENTAL SYNC CATALOG ENGINE
   window.UR_CATALOG = {
     PAGE_SIZE: 10,
