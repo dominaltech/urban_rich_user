@@ -302,21 +302,32 @@
       const totals = window.UR_CART.calculateTotals();
       const orderNum = 'UR-' + Math.floor(100000 + Math.random() * 900000);
       const cart = window.UR_CART.get();
+
+      // Shipping address object with coupon and items snapshot embedded (JSONB guarantees schema safety)
+      const shippingAddressObj = {
+        address: document.getElementById('custAddress').value.trim(),
+        city: document.getElementById('custCity').value.trim(),
+        state: document.getElementById('custState').value.trim(),
+        pincode: document.getElementById('custPincode').value.trim(),
+        coupon_code: totals.couponCode || null,
+        items_snapshot: cart.map(item => ({
+          name: item.name || 'Product',
+          size: item.size || 'M',
+          quantity: parseInt(item.quantity || 1),
+          price: parseFloat(item.price || 0),
+          image: item.image || item.main_image || ''
+        }))
+      };
+
       const orderData = {
         order_number: orderNum,
         customer_name: document.getElementById('custName').value.trim(),
         customer_email: document.getElementById('custEmail').value.trim(),
         customer_phone: document.getElementById('custPhone').value.trim(),
-        shipping_address: {
-          address: document.getElementById('custAddress').value.trim(),
-          city: document.getElementById('custCity').value.trim(),
-          state: document.getElementById('custState').value.trim(),
-          pincode: document.getElementById('custPincode').value.trim()
-        },
-        subtotal: totals.subtotal,
-        discount_amount: totals.discount || 0,
-        coupon_code: totals.couponCode || null,
-        shipping_fee: totals.shippingFee,
+        shipping_address: shippingAddressObj,
+        subtotal: parseFloat(totals.subtotal || 0),
+        discount_amount: parseFloat(totals.discount || 0),
+        shipping_fee: parseFloat(totals.shippingFee || 0),
         total_amount: Math.round(totals.total * 100) / 100,
         payment_status: 'PENDING',
         order_status: 'PLACED'
@@ -347,19 +358,21 @@
           } catch(authErr) {}
 
           const { data: insertedOrder, error: orderErr } = await client.from('orders').insert([orderData]).select().single();
-          if (orderErr) console.error('Order insert error:', orderErr);
+          if (orderErr) {
+            console.error('Order insert notice:', orderErr.message || orderErr);
+          }
           if (insertedOrder && cart.length > 0) {
             const itemsToInsert = cart.map(item => ({
               order_id: insertedOrder.id,
-              product_name: item.name,
+              product_name: item.name || 'Urban Rich Apparel',
               variant_size: item.size || 'M',
               unit_price: parseFloat(item.price || 0),
               quantity: parseInt(item.quantity || 1),
               total_price: parseFloat(item.price || 0) * parseInt(item.quantity || 1),
-              image_url: item.image || ''
+              image_url: item.image || item.main_image || ''
             }));
             const { error: itemsErr } = await client.from('order_items').insert(itemsToInsert);
-            if (itemsErr) console.error('Order items insert error:', itemsErr);
+            if (itemsErr) console.error('Order items insert notice:', itemsErr.message || itemsErr);
           }
         } catch(err) {
           console.error('Order creation exception:', err);

@@ -558,8 +558,9 @@
         const name = item.name || '';
         const price = item.price || '';
         const qty = item.qty || '';
+        const searchTarget = `shop.html?search=${encodeURIComponent(name)}`;
         return `
-          <div class="offer-combo-chip">
+          <a href="${searchTarget}" class="offer-combo-chip" title="View ${window.UR_PROMOS.escapeHtml(name)}">
             <div class="offer-combo-icon">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
             </div>
@@ -570,7 +571,7 @@
                 <span class="offer-combo-qty">/ ${window.UR_PROMOS.escapeHtml(qty)}</span>
               </div>
             </div>
-          </div>
+          </a>
         `;
       }).join('');
 
@@ -587,7 +588,7 @@
                 </svg>
               </div>
               <div class="offer-call-text">
-                <span class="offer-call-sub">ORDER BY CALL</span>
+                <span class="offer-call-sub">ORDER BY CALL NOW</span>
                 <span class="offer-call-num">${phone}</span>
               </div>
             </a>
